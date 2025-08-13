@@ -1,1 +1,13 @@
-.idea
+# 忽略构建目录
+build/
+
+# 忽略 Mac 系统生成的垃圾文件
+.DS_Store
+
+# 忽略 VSCode 配置（可选）
+.vscode/
+
+# 忽略 C++ 编译产生的中间文件 (以防万一)
+*.o
+*.exe
+MyEngine

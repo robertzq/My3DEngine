@@ -1,28 +1,31 @@
-#include "Engine/Engine.h"
-#include "Game/DemoScene.h"
-#include <cstdio>
+#include "Game.h"
 
-int main() {
-    std::fprintf(stderr, "[dbg] main enter\n");
+Game* game = nullptr;
 
-    Engine eng;
-    if (!eng.init(1280, 720, "My3DEngine")) {
-        std::fprintf(stderr, "[dbg] Engine::init FAILED\n");
-        return -1;
+int main(int argc, char* argv[]) {
+    // 限制帧率
+    const int FPS = 60;
+    const int frameDelay = 1000 / FPS;
+    
+    Uint32 frameStart;
+    int frameTime;
+
+    game = new Game();
+    game->init("ICEY Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, false);
+
+    while (game->running()) {
+        frameStart = SDL_GetTicks();
+
+        game->handleEvents();
+        game->update();
+        game->render();
+
+        frameTime = SDL_GetTicks() - frameStart;
+        if (frameDelay > frameTime) {
+            SDL_Delay(frameDelay - frameTime);
+        }
     }
-    std::fprintf(stderr, "[dbg] Engine::init OK\n");
 
-    DemoScene scene;
-    scene.init(&eng);
-
-    while (!eng.shouldClose()) {
-        eng.frameBegin();
-        scene.update();
-        scene.render();
-        eng.frameEnd();
-    }
-
-    scene.shutdown();
-    eng.shutdown();
+    game->clean();
     return 0;
 }
