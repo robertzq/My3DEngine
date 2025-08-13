@@ -1,24 +1,47 @@
-My3DEngine/
-├── CMakeLists.txt         # 主构建文件
-├── external/              # 第三方依赖（bgfx、glm、etc.）
-├── src/
-│   ├── main.cpp           # 程序入口
-│   ├── Engine/            # 核心引擎代码
-│   │   ├── Engine.h
-│   │   ├── Engine.cpp
-│   │   ├── Renderer/      # 渲染相关
-            |-BasicPipeline.cpp
-            |- BasicPipeline.h
-│   │   ├── Scene/         # 场景管理
-│   │   ├── Input/         # 输入处理
-│   │   ├── Utils/         # 工具类（日志、文件系统）
-            |-MeshGen.cpp
-            |-MeshGen.h
-│   └── Game/              # 游戏或 Demo 逻辑
-│       ├── DemoScene.cpp
-│       ├── DemoScene.h
-└── assets/                # 模型、纹理等资源
-    ｜-fs_simple.sc
-     |-varying.def.sc
-     |-vs_simple.sc
-
+```
+My3DEngine
+.
+├── ./.gitignore
+├── ./CMakeLists.txt
+├── ./Readme.md
+├── ./TREE.md
+├── ./assets
+│   └── ./assets/shaders
+│       ├── ./assets/shaders/fs_simple.sc
+│       ├── ./assets/shaders/varying.def.sc
+│       └── ./assets/shaders/vs_simple.sc
+├── ./bin
+│   └── ./bin/assets
+│       └── ./bin/assets/shaders_bin
+│           ├── ./bin/assets/shaders_bin/fs_simple.pp.txt
+│           └── ./bin/assets/shaders_bin/vs_simple.pp.txt
+├── ./build
+├── ./compileCode.sh
+├── ./compileScript.sh
+├── ./compileShader.sh
+├── ./err.log
+├── ./external
+│   ├── ./external/bgfx.cmake
+│   ├── ./external/glfw
+│   └── ./external/glm
+├── ./gen_tree.sh
+├── ./runGame.sh
+└── ./src
+    ├── ./src/Engine
+    │   ├── ./src/Engine/Engine.h
+    │   ├── ./src/Engine/Engine.mm
+    │   ├── ./src/Engine/Input
+    │   ├── ./src/Engine/Renderer
+    │   │   ├── ./src/Engine/Renderer/BasicPipeline.cpp
+    │   │   └── ./src/Engine/Renderer/BasicPipeline.h
+    │   ├── ./src/Engine/Scene
+    │   ├── ./src/Engine/ShaderUtils.cpp
+    │   ├── ./src/Engine/ShaderUtils.h
+    │   └── ./src/Engine/Utils
+    │       ├── ./src/Engine/Utils/MeshGen.cpp
+    │       └── ./src/Engine/Utils/MeshGen.h
+    ├── ./src/Game
+    │   ├── ./src/Game/DemoScene.cpp
+    │   └── ./src/Game/DemoScene.h
+    └── ./src/main.cpp
+```
