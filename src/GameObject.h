@@ -12,6 +12,17 @@ public:
     // 新增：让外部能控制它跳跃
     void Jump();
     void SetVelX(int velocity); // <--- 新增这一行：设置水平速度
+    // 获取当前的碰撞包围盒
+    SDL_Rect GetBounds();
+    // 强制让角色落地
+    void LandOnGround(int groundHeight);
+
+    // 获取当前的速度方向（为了判断是向左撞还是向右撞）
+    int GetVelX() { return velX; }
+    int GetVelY() { return velY; } // 记得也要加这个，后面会用到
+
+    // 处理撞墙
+    void CollideWall(int wallX, int wallWidth);
 
 private:
     float xpos, ypos;      // 改成 float 以便计算精细的物理

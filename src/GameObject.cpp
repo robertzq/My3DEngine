@@ -45,15 +45,24 @@ void GameObject::Update() {
     xpos += velX;
     ypos += velY;
 
-    // 2. 地面碰撞
-    if (ypos >= 500) {
-        ypos = 500;
-        velY = 0; 
+    // --- 【新增】世界边界限制 ---
+
+    // 1. 左边界限制
+    if (xpos < 0) {
+        xpos = 0;
+    }
+
+    // 2. 右边界限制
+    // 假设地图宽 100 格 * 32 = 3200
+    // srcRect.w 是小人的宽度（或者用 destRect.w 如果你缩放过）
+    // 这里的 3200 最好不要写死，以后可以传进来，但现在先写死测试
+    if (xpos > 3200 - destRect.w) {
+        xpos = 3200 - destRect.w;
     }
 
     // 3. 更新渲染位置
-    destRect.x = (int)xpos;
-    destRect.y = (int)ypos;
+    destRect.x = static_cast<int>(xpos);
+    destRect.y = static_cast<int>(ypos);
   
     // 【建议】手动指定一个合理的大小，比如 64x64 或 128x128
     // 不要直接乘以 2，因为你的新素材非常高清
@@ -82,7 +91,16 @@ void GameObject::Update() {
 
 void GameObject::Render() {
     if(objTexture) {
-        TextureManager::Draw(objTexture, srcRect, destRect, renderer, spriteFlip);
+        // 1. 创建一个临时的矩形，专门用来画在屏幕上
+        SDL_Rect screenRect = destRect;
+
+        // 2. 【核心修正】必须减去摄像机的位置！
+        // 这样就把 "世界坐标" 转换成了 "屏幕坐标"
+        screenRect.x = destRect.x - Game::camera.x;
+        screenRect.y = destRect.y - Game::camera.y;
+
+        // 3. 画这个转换后的 screenRect，而不是原始的 destRect
+        TextureManager::Draw(objTexture, srcRect, screenRect, renderer, spriteFlip);
     } else {
         // 图片没加载出来，画个红块
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
@@ -96,8 +114,7 @@ void GameObject::Render() {
 // 新增：跳跃功能
 void GameObject::Jump() {
     // 直接给向上的速度，不管在哪里
-    velY = -10; 
-    std::cout << "芜湖！起飞！" << std::endl;
+    velY = -10;
 }
 
 // 设置水平速度：正数向右，负数向左，0停止
@@ -114,4 +131,64 @@ void GameObject::SetVelX(int velocity) {
     }
     // 注意：velocity == 0 时不要改变翻转状态，
     // 否则停下来的时候会瞬间变回默认朝向，看起来很怪。
+}
+
+void GameObject::LandOnGround(int groundHeight) {
+   // 1. 修正物理位置
+       ypos = groundHeight - destRect.h;
+       velY = 0;
+
+       // 2. 【核心修复】立刻同步视觉位置！
+       // 如果不加这行，这一帧渲染的还是那个“掉进地里 0.5 像素”的旧 destRect
+       // 加了这行，渲染器就会立刻画在修正后的正确位置
+       destRect.y = static_cast<int>(ypos);
+}
+
+// 处理撞墙逻辑
+void GameObject::CollideWall(int wallX, int wallWidth) {
+    // 如果我正向右走 (velX > 0)，撞到了方块的左边
+    if (velX > 0) {
+        xpos = wallX - destRect.w; // 停在方块左边
+    }
+    // 如果我正向左走 (velX < 0)，撞到了方块的右边
+    else if (velX < 0) {
+        xpos = wallX + wallWidth; // 停在方块右边
+    }
+    
+    // 这里的关键是：我们只改变了位置，不一定非要 velX = 0。
+    // 如果你希望像超级马里奥那样按住方向键继续跑但不移动，就不设 velX=0。
+    // 如果你希望撞墙瞬间停下，可以加一句 velX = 0;
+    
+    destRect.x = (int)xpos; // 更新渲染位置
+}
+
+SDL_Rect GameObject::GetBounds() {
+    SDL_Rect bounds = destRect;
+
+    // 1. 左右缩进：改回合理的数值
+    // 12 太大了，会导致你离墙很远。6 比较合适 (左右各缩6，总共缩12)
+    int bufferX = 6;
+
+    // 2. 头部缩进：防止跳跃时头皮蹭到天花板
+    int bufferY_Top = 4;
+
+    // 3. 【核心修复】脚底不缩进！
+    // 这样物理落地时，视觉上也刚好落地
+    int bufferY_Bottom = 0;
+
+    bounds.x = destRect.x + bufferX;
+    bounds.w = destRect.w - (2 * bufferX); // 宽度减小
+
+    bounds.y = destRect.y + bufferY_Top; // 顶部下移
+
+    // 高度 = 原高度 - 顶部缩进 - 底部缩进(0)
+    bounds.h = destRect.h - bufferY_Top - bufferY_Bottom;
+
+    return bounds;
+}
+// 【新增】析构函数实现
+GameObject::~GameObject() {
+    // 这里并没有什么特别需要手动释放的
+    // 因为 TextureManager 会处理渲染器，但为了代码完整性，这里得有个空函数
+    std::cout << "GameObject 已销毁" << std::endl;
 }

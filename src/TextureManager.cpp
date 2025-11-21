@@ -29,3 +29,10 @@ void TextureManager::Draw(SDL_Texture* tex, SDL_Rect src, SDL_Rect dest, SDL_Ren
 
     SDL_RenderCopyEx(ren, tex, &src, &dest, 0.0, NULL, flip);
 }
+
+// 【新增】实现 DrawWhole
+void TextureManager::DrawWhole(SDL_Texture* tex, SDL_Rect dest, SDL_Renderer* ren, SDL_RendererFlip flip) {
+    // 这里也可以传 NULL 给 src，SDL 会自动使用整张图
+    // 这样你就不用自己写 SDL_QueryTexture 了！
+    SDL_RenderCopyEx(ren, tex, NULL, &dest, 0.0, NULL, flip);
+}

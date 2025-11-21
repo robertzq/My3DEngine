@@ -6,6 +6,7 @@ build/
 
 # 忽略 VSCode 配置（可选）
 .vscode/
+.idea/**
 
 # 忽略 C++ 编译产生的中间文件 (以防万一)
 *.o
