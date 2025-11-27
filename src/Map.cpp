@@ -5,9 +5,9 @@ Map::Map() {
     // 加载地形素材
     // 请确保你在 assets 里放了这三张图，或者用一张 tileset
     // 这里为了演示方便，假设你有这三张图
-    dirt = TextureManager::LoadTexture("../assets/dirt.png", Game::renderer);
-    grass = TextureManager::LoadTexture("../assets/grass.png", Game::renderer);
-    water = TextureManager::LoadTexture("../assets/water.png", Game::renderer);
+    dirt = TextureManager::LoadTexture("./assets/dirt.png", Game::renderer);
+    grass = TextureManager::LoadTexture("./assets/grass.png", Game::renderer);
+    water = TextureManager::LoadTexture("./assets/water.png", Game::renderer);
 
     // 初始化渲染区域
     srcRect.x = srcRect.y = 0;
