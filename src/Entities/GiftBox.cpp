@@ -1,10 +1,11 @@
 #include "GiftBox.h"
 #include "TextureManager.h"
+#include "ResourceManager.h"
 
 GiftBox::GiftBox(int x, int y) {
     // 1. 加载图片素材
-    boxTexture = TextureManager::LoadTexture("./assets/gift.png", Game::renderer);
-    bannerTexture = TextureManager::LoadTexture("./assets/100daysbanner.png", Game::renderer);
+    boxTexture = ResourceManager::GetTexture("gift.png");
+    bannerTexture = ResourceManager::GetTexture("100daysbanner.png");
 
 // --- 【新增】错误检查 ---
     if (boxTexture == nullptr) {

@@ -2,6 +2,7 @@
 #include "Game.h"
 #include <string> // 新增
 #include <fstream> // 新增
+#include <vector>
 // 假设我们要个宽一点的图
 #define MAP_WIDTH 100
 #define MAP_HEIGHT 20
@@ -29,6 +30,9 @@ private:
     SDL_Texture* water;
     SDL_Texture* heart;
 
-    // 地图数组
-    int map[MAP_HEIGHT][MAP_WIDTH];
+    // 【核心修改】改为二维动态数组
+    std::vector<std::vector<int>> mapData;
+    // 记录地图实际宽
+    int mapHeight = 0;
+    int mapWidth = 0;
 };

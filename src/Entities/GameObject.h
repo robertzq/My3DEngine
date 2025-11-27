@@ -4,10 +4,10 @@
 class GameObject {
 public:
     GameObject(const char* texturesheet, SDL_Renderer* ren, int x, int y, int numFrames = 1);
-    ~GameObject();
+   virtual ~GameObject();
 
-    void Update();
-    void Render();
+    virtual void Update();
+    virtual void Render();
     
     // 新增：让外部能控制它跳跃
     void Jump();
@@ -23,8 +23,12 @@ public:
 
     // 处理撞墙
     void CollideWall(int wallX, int wallWidth);
+    // 【新增】开关重力 (默认是 true/开启)
+    void SetGravityEnabled(bool enabled) { useGravity = enabled; }
 
-private:
+    // 【新增】设置垂直速度 (RPG 模式需要上下走)
+    void SetVelY(int velocity);
+protected:
     float xpos, ypos;      // 改成 float 以便计算精细的物理
     float velX, velY;      // 速度 (Velocity)
     float gravity;         // 重力
@@ -32,7 +36,7 @@ private:
     // --- 动画相关变量 ---
     int totalFrames;   // 总帧数
     int animSpeed;     // 动画速度（数值越小越快，单位毫秒）
-
+    bool useGravity = true; // 【新增】状态变量
     SDL_Texture* objTexture;
     SDL_Rect srcRect, destRect;
     SDL_Renderer* renderer;

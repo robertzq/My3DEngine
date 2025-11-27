@@ -1,10 +1,10 @@
 #include "GameObject.h"
 #include "TextureManager.h"
+#include "ResourceManager.h"
 
-GameObject::GameObject(const char* texturesheet, SDL_Renderer* ren, int x, int y, int numFrames){
+GameObject::GameObject(const char* resourceId, SDL_Renderer* ren, int x, int y, int numFrames){
     renderer = ren;
-    objTexture = TextureManager::LoadTexture(texturesheet, ren);
-    
+    objTexture = ResourceManager::GetTexture(resourceId);
     xpos = x;
     ypos = y;
     
@@ -21,9 +21,13 @@ GameObject::GameObject(const char* texturesheet, SDL_Renderer* ren, int x, int y
     // 如果图片没加载成功，宽高可能为0，不过后面Update会处理
     // 获取整个大图的宽高
     int texW, texH;
-    SDL_QueryTexture(objTexture, NULL, NULL, &texW, &texH);
+    if (objTexture) {
+            SDL_QueryTexture(objTexture, NULL, NULL, &texW, &texH);
+    } else {
+        std::cout << "ERROR: GameObject 纹理加载失败 -> " << resourceId << std::endl;
+    }
 
-    // ⚠️ 【关键点 2】确保是 "图片总宽 / 帧数" (texW / totalFrames)
+    // 【关键点 2】确保是 "图片总宽 / 帧数" (texW / totalFrames)
     if (totalFrames > 0) {
         srcRect.w = texW / totalFrames; 
     } else {
@@ -41,7 +45,9 @@ GameObject::GameObject(const char* texturesheet, SDL_Renderer* ren, int x, int y
 
 void GameObject::Update() {
     // 1. 物理计算
-    velY += gravity;
+    if (useGravity) {
+            velY += gravity;
+    }
     xpos += velX;
     ypos += velY;
 
@@ -131,6 +137,11 @@ void GameObject::SetVelX(int velocity) {
     }
     // 注意：velocity == 0 时不要改变翻转状态，
     // 否则停下来的时候会瞬间变回默认朝向，看起来很怪。
+}
+
+void GameObject::SetVelY(int velocity) {
+    velY = velocity;
+    // RPG 模式一般不需要垂直翻转图片，除非你有“背影”素材
 }
 
 void GameObject::LandOnGround(int groundHeight) {

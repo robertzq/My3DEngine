@@ -12,3 +12,4 @@ build/
 *.o
 *.exe
 MyEngine
+assets/EmbeddedAssets.h
