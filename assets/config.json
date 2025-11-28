@@ -1,0 +1,26 @@
+{
+  "game_title": "RBT Engine v1.0",
+  "initial_index": 1,
+  "level_sequence": [
+    {
+      "type": "PlayScene",
+      "name": "Level 1",
+      "params": {
+        "map_file": "level1.map",
+        "bgm": "bgm_forest.mp3"
+      }
+    },
+    {
+      "type": "DungeonScene",
+      "name": "The Maze",
+      "params": {
+        "map_file": "dungeon.map"
+      }
+    },
+    {
+      "type": "EndingScene",
+      "name": "Credits",
+      "params": {}
+    }
+  ]
+}
