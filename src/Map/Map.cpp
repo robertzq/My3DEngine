@@ -132,3 +132,21 @@ std::vector<Collectible*> Map::generateHearts() {
     }
     return generatedHearts;
 }
+
+std::vector<SDL_Rect> Map::GetTiles(int tileID) {
+    std::vector<SDL_Rect> tiles;
+
+    for(int row = 0; row < mapData.size(); row++) {
+        for(int col = 0; col < mapData[row].size(); col++) {
+            if (mapData[row][col] == tileID) {
+                SDL_Rect r;
+                r.x = col * 32;
+                r.y = row * 32;
+                r.w = 32;
+                r.h = 32;
+                tiles.push_back(r);
+            }
+        }
+    }
+    return tiles;
+}

@@ -3,7 +3,7 @@
 #include <string>
 #include <SDL.h>
 #include <iostream>
-
+struct EmbeddedResource;
 // 这是一个单例或者全静态类
 class ResourceManager {
 public:
@@ -17,6 +17,7 @@ public:
     // 获取纯文本/数据内容 (比如读取 .map 文件)
     // 返回 string 方便处理，或者你可以返回 stringstream
     static std::string GetTextContent(const std::string& id);
+    static const EmbeddedResource* GetResource(const std::string& id);
 
     // 清理所有缓存的纹理
     static void Clean();

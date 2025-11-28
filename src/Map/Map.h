@@ -21,6 +21,9 @@ public:
     // 【新增】这是一个工厂函数，它扫描地图，把所有的 '3' 变成爱心对象返回
     std::vector<Collectible*> generateHearts();
 
+    // 【新增】获取指定类型的图块位置（用于获取触发器 5）
+    std::vector<SDL_Rect> GetTiles(int tileID);
+
 private:
     SDL_Rect srcRect, destRect;
     

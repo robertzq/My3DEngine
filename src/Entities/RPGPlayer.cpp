@@ -85,3 +85,27 @@ void RPGPlayer::Update() {
         srcRect.x = 0; // 静止帧
     }
 }
+
+// 【新增】RPG 专属的窄碰撞箱实现
+SDL_Rect RPGPlayer::GetBounds() {
+    // 1. 获取基础渲染位置
+    SDL_Rect bounds = destRect;
+
+    // 2. RPG 模式专用缩进参数
+    // 假设人宽 50，左右各缩 15，剩下 20 宽，非常容易穿过狭窄地形
+    int bufferX = 15;
+
+    // 头部缩进 (稍微多一点，让头顶能稍微遮住墙脚，更有透视感)
+    int bufferY_Top = 20;
+
+    // 脚底缩进 (保持 0 或者稍微减一点点)
+    int bufferY_Bottom = 0;
+
+    bounds.x = destRect.x + bufferX;
+    bounds.w = destRect.w - (2 * bufferX);
+
+    bounds.y = destRect.y + bufferY_Top;
+    bounds.h = destRect.h - bufferY_Top - bufferY_Bottom;
+
+    return bounds;
+}

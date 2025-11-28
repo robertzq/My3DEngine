@@ -18,4 +18,7 @@ private:
     std::string mapPath;
     GameObject* player;
     Map* map;
+
+    // 【新增】存储触发器区域
+    std::vector<SDL_Rect> triggers;
 };

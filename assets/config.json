@@ -18,6 +18,16 @@
       }
     },
     {
+      "type": "DungeonScene",
+      "name": "Level 2: 直播间后台 (走到尽头触发PK)",
+      "params": { "map_file": "level2_hallway.map" }
+    },
+    {
+      "type": "PlayScene",
+      "name": "Level 3: 生日广场",
+      "params": { "map_file": "level3_party.map" }
+    },
+    {
       "type": "EndingScene",
       "name": "Credits",
       "params": {}

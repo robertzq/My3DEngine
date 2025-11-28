@@ -17,6 +17,8 @@ public:
     void clean();
 
     bool running() { return isRunning; }
+    // === 【新增】单例访问方法 ===
+    static Game* instance() { return s_instance; }
 
     // 全局静态变量 (渲染器和摄像机)
     static SDL_Renderer* renderer;
@@ -42,4 +44,7 @@ private:
     // 【新增】存储关卡序列
     std::vector<json> levelSequence;
     int currentLevelIndex = 0;
+
+    // === 【新增】单例指针变量 ===
+    static Game* s_instance;
 };

@@ -1,7 +1,7 @@
 #include "Game.h"
 #include "SceneFactory.h"
 #include "ResourceManager.h"
-
+#include "TextRenderer.h"
 
 // 静态成员初始化
 SDL_Renderer* Game::renderer = nullptr;
@@ -9,8 +9,16 @@ SDL_Event Game::event;
 SDL_Rect Game::camera = {0, 0, 800, 600};
 float Game::cameraX_float = 0.0f;
 
-Game::Game() {}
-Game::~Game() {}
+// === 【新增】初始化单例指针 ===
+Game* Game::s_instance = nullptr;
+
+Game::Game() {
+    s_instance = this;
+}
+Game::~Game() {
+// 可以在这里置空，虽然程序结束了也没关系
+    s_instance = nullptr;
+}
 
 void Game::init(const char* title, int xpos, int ypos, int width, int height, bool fullscreen) {
     int flags = 0;
@@ -36,7 +44,9 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
     }
     ResourceManager::Init();
    // === 【核心变化 1】只注册类型，不注册具体关卡 ===
-
+    if (!TextRenderer::Init("msyh.ttf", 24)) { // 字体文件叫 NISC18030.ttf
+            std::cout << "字体初始化失败" << std::endl;
+    }
    // === 【核心变化 2】读取序列 ===
    std::string configStr = ResourceManager::GetTextContent("config.json");
    auto config = json::parse(configStr);

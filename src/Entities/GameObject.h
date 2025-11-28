@@ -13,7 +13,7 @@ public:
     void Jump();
     void SetVelX(int velocity); // <--- 新增这一行：设置水平速度
     // 获取当前的碰撞包围盒
-    SDL_Rect GetBounds();
+    virtual SDL_Rect GetBounds();
     // 强制让角色落地
     void LandOnGround(int groundHeight);
 
