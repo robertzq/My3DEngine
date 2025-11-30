@@ -6,23 +6,39 @@
 #include "SceneFactory.h"
 #include "RPGPlayer.h"
 
-DungeonScene::DungeonScene(std::string mapFile) : mapPath(mapFile) {}
+DungeonScene::DungeonScene(std::string mapFile, bool spawnAtEntrance)
+    : mapPath(mapFile), shouldSpawnAtEntrance(spawnAtEntrance) {}
 
 void DungeonScene::OnEnter() {
-    std::cout << "进入 RPG 地牢模式..." << std::endl;
+    std::cout << "进入地图: " << mapPath << std::endl;
 
     // 1. 加载地图
     map = new Map();
     map->LoadMap(mapPath);
 
-    // 2. 创建主角
-    player = new RPGPlayer("rpgPlayer.png", Game::renderer, 100, 100, 4, 4);
+    // 2. 确定主角出生位置
+    int startX = 100;
+    int startY = 100;
 
-    // 3. 【新增】加载所有的 '5' 号方块作为触发器
-    triggers = map->GetTiles(5);
-    if (!triggers.empty()) {
-        std::cout << "加载了 " << triggers.size() << " 个 BOSS 触发点" << std::endl;
+    // 如果指定了出生在入口 (ID: 15)，则扫描地图
+    if (shouldSpawnAtEntrance) {
+        std::vector<SDL_Rect> entrances = map->GetTiles(15);
+        if (!entrances.empty()) {
+            startX = entrances[0].x;
+            startY = entrances[0].y;
+            // 稍微往上一点，不要卡在墙里
+            startY -= 10;
+        }
     }
+
+    player = new RPGPlayer("rpgPlayer.png", Game::renderer, startX, startY, 4, 4);
+
+    // 3. 加载触发器
+    // ID 7: 门 (Village -> House)
+    doorTriggers = map->GetTiles(7);
+
+    // ID 14: 舞台/Boss (House -> Battle)
+    bossTriggers = map->GetTiles(14);
 }
 
 void DungeonScene::OnExit() {
@@ -52,56 +68,64 @@ void DungeonScene::HandleEvents(SDL_Event& event) {
 void DungeonScene::Update() {
     player->Update();
 
-    // RPG 碰撞检测 (墙壁)
+    // 1. 墙壁碰撞
     std::vector<SDL_Rect> obstacles = map->getColliders();
     Physics::ResolveRPGCollision(player, obstacles);
 
-    // 摄像机跟随
+    // 2. 摄像机跟随
     Game::camera.x = player->GetBounds().x - 400;
     Game::camera.y = player->GetBounds().y - 300;
+    if(Game::camera.x < 0) Game::camera.x = 0;
+    if(Game::camera.y < 0) Game::camera.y = 0;
 
-    // 【新增】检测是否踩到触发器 (类型 5)
-    for (const auto& trig : triggers) {
-        if (Physics::CheckCollision(player->GetBounds(), trig)) {
-            std::cout << "踩到触发器！进入 PK！" << std::endl;
-
-            // 切换到 BattleScene
-            json params;
-            Scene* battle = SceneFactory::Create("BattleScene", params);
-            Game::instance()->ChangeScene(battle);
-            return; // 切换后直接返回，防止后续逻辑报错
+    // 3. 检测进门 (Village -> House)
+    for (const auto& door : doorTriggers) {
+        if (Physics::CheckCollision(player->GetBounds(), door)) {
+            std::cout << "进入房子..." << std::endl;
+            // 切换到 house.map，并要求出生在入口位置 (true)
+            Game::instance()->ChangeScene(new DungeonScene("assets/house.map", true));
+            return;
         }
     }
 
-    // 边界检查
-    if(Game::camera.x < 0) Game::camera.x = 0;
-    if(Game::camera.y < 0) Game::camera.y = 0;
+    // 4. 检测 BOSS (House -> Battle)
+    for (const auto& bossZone : bossTriggers) {
+        if (Physics::CheckCollision(player->GetBounds(), bossZone)) {
+            std::cout << "遭遇 BOSS！进入战斗！" << std::endl;
+            json params;
+            // 可以传参数告诉 BattleScene 是哪个 BOSS
+            params["enemy_id"] = "boss_01";
+            Scene* battle = SceneFactory::Create("BattleScene", params);
+            Game::instance()->ChangeScene(battle);
+            return;
+        }
+    }
 }
 
 void DungeonScene::Render() {
     map->DrawMap();
     player->Render();
 
-    // --- 绘制触发器 (调试用) ---
-    // 1. 设置画笔为红色
-    SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
-
-    for(auto t : triggers) {
-        // 记得减去摄像机位置，否则红框会飘
-        SDL_Rect drawRect = t;
-        drawRect.x -= Game::camera.x;
-        drawRect.y -= Game::camera.y;
-
-        // 画红框 (空心框用 RenderDrawRect，实心用 RenderFillRect)
-        SDL_RenderDrawRect(Game::renderer, &drawRect);
+    // 调试：画出触发器位置
+    /*
+    SDL_SetRenderDrawColor(Game::renderer, 255, 255, 0, 255); // 黄色门
+    for(auto t : doorTriggers) {
+        SDL_Rect r = t; r.x -= Game::camera.x; r.y -= Game::camera.y;
+        SDL_RenderDrawRect(Game::renderer, &r);
     }
-
-    // 2. 【核心修复】画完之后，必须把颜色改回默认色（比如黑色或白色）！
-    // 否则下一帧清屏时，整个背景都会变成红色
+    SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255); // 红色BOSS
+    for(auto t : bossTriggers) {
+        SDL_Rect r = t; r.x -= Game::camera.x; r.y -= Game::camera.y;
+        SDL_RenderDrawRect(Game::renderer, &r);
+    }
     SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
+    */
 }
 
+// 注册工厂
 static SceneFactory::Proxy proxy_dungeon("DungeonScene", [](const json& params) {
-    std::string mapPath = params.value("map_file", "dungeon.map");
-    return new DungeonScene(mapPath);
+    std::string mapPath = params.value("map_file", "village.map");
+    // 默认不强制出生在入口，除非参数指定
+    bool spawnAtEnt = params.value("spawn_at_entrance", false);
+    return new DungeonScene(mapPath, spawnAtEnt);
 });

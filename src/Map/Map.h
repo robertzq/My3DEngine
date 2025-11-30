@@ -1,41 +1,57 @@
+// src/Map/Map.h
 #pragma once
 #include "Game.h"
-#include <string> // 新增
-#include <fstream> // 新增
+#include <string>
 #include <vector>
-// 假设我们要个宽一点的图
-#define MAP_WIDTH 100
-#define MAP_HEIGHT 20
+#include <iostream>
+
 class Collectible;
+
 class Map {
 public:
     Map();
     ~Map();
 
-   // 修改：不再传数组，而是传文件路径
     void LoadMap(std::string path);
     void DrawMap();
 
-    // 【新增】获取所有的障碍物矩形
+    // 获取障碍物（碰撞箱）
     std::vector<SDL_Rect> getColliders();
-    // 【新增】这是一个工厂函数，它扫描地图，把所有的 '3' 变成爱心对象返回
-    std::vector<Collectible*> generateHearts();
 
-    // 【新增】获取指定类型的图块位置（用于获取触发器 5）
+    // 获取指定类型的图块（用于寻找门、BOSS、出生点）
     std::vector<SDL_Rect> GetTiles(int tileID);
+
+    // 【新增】获取地图尺寸
+    int GetWidth() { return mapWidth; }
+    int GetHeight() { return mapHeight; }
+    std::vector<Collectible*> generateHearts();
 
 private:
     SDL_Rect srcRect, destRect;
-    
-    // 存储三种地形的纹理
-    SDL_Texture* dirt;
-    SDL_Texture* grass;
-    SDL_Texture* water;
-    SDL_Texture* heart;
 
-    // 【核心修改】改为二维动态数组
+    // --- 纹理资源 ---
+    // 通用/村庄
+    SDL_Texture* tex_grass;     // 0
+    SDL_Texture* tex_tree;      // 1
+    SDL_Texture* tex_path;      // 2
+    SDL_Texture* tex_water;     // 3
+    SDL_Texture* tex_bridge;    // 4
+    SDL_Texture* tex_wall;      // 5
+    SDL_Texture* tex_roof;      // 6
+    SDL_Texture* tex_door;      // 7
+    SDL_Texture* tex_flower;    // 8
+    SDL_Texture* tex_fence;     // 9
+
+    // 室内
+    SDL_Texture* tex_wood;      // 10
+    SDL_Texture* tex_inWall;    // 11
+    SDL_Texture* tex_rug;       // 12
+    SDL_Texture* tex_sofa;      // 13
+    SDL_Texture* tex_stage;     // 14
+    SDL_Texture* tex_entrance;  // 15
+    SDL_Texture* tex_decor;     // 16
+
     std::vector<std::vector<int>> mapData;
-    // 记录地图实际宽
     int mapHeight = 0;
     int mapWidth = 0;
 };
