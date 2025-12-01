@@ -5,6 +5,7 @@
 #include "TextureManager.h"
 #include "TextRenderer.h"
 #include "Game.h"
+#include "VillageScene.h"
 #include <ctime>
 
 // 全角转换
@@ -33,8 +34,8 @@ BattleScene::BattleScene() {
     uiBoxTexture = ResourceManager::GetTexture("dialogrect.png");
     cursorTexture = ResourceManager::GetTexture("point.png");
 
-    maxPlayerHP = 20000; playerHP = 20000;
-    maxEnemyHP = 20000; enemyHP = 20000;
+    maxPlayerHP = 10000; playerHP = 10000;
+    maxEnemyHP = 10000; enemyHP = 10000;
 
     currentState = PLAYER_TURN;
     messageLog = "";
@@ -97,7 +98,7 @@ std::string BattleScene::GetDamageText(int damage) {
     if (damage >= 1000) return "效果核爆！！！！！";
     if (damage >= 150) return "效果拔群！！！";
     if (damage >= 50) return "效果显著！";
-    return "效果普通。";
+    return "效果普通";
 }
 
 void BattleScene::HandleEvents(SDL_Event& event) {
@@ -178,7 +179,7 @@ void BattleScene::HandleEvents(SDL_Event& event) {
         }
     } else if (currentState == VICTORY || currentState == DEFEAT) {
         if (event.type == SDL_KEYDOWN) {
-            Game::instance()->NextLevel();
+            Game::instance()->ChangeScene(new VillageScene("village.map", false));
         }
     }
 }

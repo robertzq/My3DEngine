@@ -9,7 +9,7 @@ public:
 
     // 重写 Update，实现 4 方向动画逻辑
     void Update() override;
-    // 【新增】声明重写 GetBounds
+
     SDL_Rect GetBounds() override;
 private:
     int totalRows;

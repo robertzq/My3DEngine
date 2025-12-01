@@ -11,14 +11,14 @@
       }
     },
     {
-      "type": "DungeonScene",
-      "name": "The Maze",
+      "type": "VillageScene",
+      "name": "My Village",
       "params": {
-        "map_file": "dungeon.map"
+        "map_file": "village.map"
       }
     },
     {
-      "type": "DungeonScene",
+      "type": "VillageScene",
       "name": "Level 2: 直播间后台 (走到尽头触发PK)",
       "params": { "map_file": "level2_hallway.map" }
     },

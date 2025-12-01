@@ -28,6 +28,11 @@ public:
 
     // 【新增】设置垂直速度 (RPG 模式需要上下走)
     void SetVelY(int velocity);
+
+    void SetX(float x) { xpos = x; }
+    void SetY(float y) { ypos = y; }
+    // 同时设置 X 和 Y
+    void SetPos(float x, float y) { xpos = x; ypos = y; }
 protected:
     float xpos, ypos;      // 改成 float 以便计算精细的物理
     float velX, velY;      // 速度 (Velocity)

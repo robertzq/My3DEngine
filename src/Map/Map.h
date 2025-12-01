@@ -50,6 +50,7 @@ private:
     SDL_Texture* tex_stage;     // 14
     SDL_Texture* tex_entrance;  // 15
     SDL_Texture* tex_decor;     // 16
+    SDL_Texture* tex_mic;     // 17
 
     std::vector<std::vector<int>> mapData;
     int mapHeight = 0;

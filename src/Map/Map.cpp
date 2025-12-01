@@ -28,6 +28,8 @@ Map::Map() {
     tex_entrance= ResourceManager::GetTexture("entrance.png"); // 15
     tex_decor   = ResourceManager::GetTexture("decor.png");    // 16
 
+    tex_mic   = ResourceManager::GetTexture("mic.png");    // 17
+
     srcRect.x = srcRect.y = 0;
     srcRect.w = destRect.w = 32;
     srcRect.h = destRect.h = 32;
@@ -117,10 +119,11 @@ void Map::DrawMap() {
                 case 14: texToDraw = tex_stage; break;
                 case 15: texToDraw = tex_entrance; break;
                 case 16: texToDraw = tex_decor; break;
+                case 17: texToDraw = tex_mic; break;
                 default: break;
             }
             if(texToDraw)
-                TextureManager::Draw(texToDraw, srcRect, destRect, Game::renderer, SDL_FLIP_NONE);
+                TextureManager::DrawWhole(texToDraw, destRect, Game::renderer, SDL_FLIP_NONE);
         }
     }
 }
@@ -136,7 +139,7 @@ std::vector<SDL_Rect> Map::getColliders() {
             // 1=Tree, 3=Water, 5=Wall, 6=Roof(可选), 9=Fence
             // 11=InWall, 13=Sofa, 16=Decor
             bool isBlocking = (type == 1 || type == 3 || type == 5 || type == 6 || type == 9 ||
-                               type == 11 || type == 13 || type == 16);
+                               type == 11 || type == 13 );
 
             if (isBlocking) {
                 SDL_Rect collider;

@@ -35,6 +35,8 @@ public:
     // 【新增】下一关 (给 PlayScene 或是触发器调用的)
     void NextLevel();
 
+    int bossDefeatedCount = 0; // 新增：记录打败BOSS的数量
+
 private:
     bool isRunning;
     SDL_Window* window;
