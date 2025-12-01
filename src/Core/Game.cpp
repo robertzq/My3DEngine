@@ -44,7 +44,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
     }
     ResourceManager::Init();
    // === 【核心变化 1】只注册类型，不注册具体关卡 ===
-    if (!TextRenderer::Init("msyh.ttf", 24)) { // 字体文件叫 NISC18030.ttf
+    if (!TextRenderer::Init("fusion-pixel-12px-monospaced-zh_hans.ttf", 24)) { // 字体文件叫 NISC18030.ttf
             std::cout << "字体初始化失败" << std::endl;
     }
    // === 【核心变化 2】读取序列 ===
