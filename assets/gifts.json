@@ -1,0 +1,33 @@
+{
+  "giftListTitle": "MyList",
+  "itemList": [
+    {
+      "gname": "你真好看",
+      "gbattery": 10
+    },
+    {
+      "gname": "单推",
+      "gbattery": 99
+    },
+    {
+      "gname": "爱心抱枕",
+      "gbattery": 160
+    },
+    {
+      "gname": "心动盲盒",
+      "gbattery": 150
+    },
+    {
+      "gname": "粉丝团灯牌",
+      "gbattery": 1
+    },
+    {
+      "gname": "星愿水晶球",
+      "gbattery": 1000
+    },
+    {
+      "gname": "情书",
+      "gbattery": 52
+    }
+  ]
+}

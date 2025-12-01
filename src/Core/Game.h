@@ -17,6 +17,8 @@ public:
     void clean();
 
     bool running() { return isRunning; }
+    // === 【新增】单例访问方法 ===
+    static Game* instance() { return s_instance; }
 
     // 全局静态变量 (渲染器和摄像机)
     static SDL_Renderer* renderer;
@@ -33,6 +35,8 @@ public:
     // 【新增】下一关 (给 PlayScene 或是触发器调用的)
     void NextLevel();
 
+    int bossDefeatedCount = 0; // 新增：记录打败BOSS的数量
+
 private:
     bool isRunning;
     SDL_Window* window;
@@ -42,4 +46,7 @@ private:
     // 【新增】存储关卡序列
     std::vector<json> levelSequence;
     int currentLevelIndex = 0;
+
+    // === 【新增】单例指针变量 ===
+    static Game* s_instance;
 };

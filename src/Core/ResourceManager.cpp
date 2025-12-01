@@ -79,3 +79,12 @@ void ResourceManager::Clean() {
     textureCache.clear();
     std::cout << "[ResourceManager] 已清理所有纹理缓存" << std::endl;
 }
+
+const EmbeddedResource* ResourceManager::GetResource(const std::string& id) {
+    auto it = EMBEDDED_ASSETS.find(id);
+    if (it == EMBEDDED_ASSETS.end()) {
+        std::cerr << "[ResourceManager] 错误: 找不到内嵌资源 -> " << id << std::endl;
+        return nullptr;
+    }
+    return &(it->second);
+}

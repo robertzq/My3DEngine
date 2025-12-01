@@ -13,7 +13,7 @@ public:
     void Jump();
     void SetVelX(int velocity); // <--- 新增这一行：设置水平速度
     // 获取当前的碰撞包围盒
-    SDL_Rect GetBounds();
+    virtual SDL_Rect GetBounds();
     // 强制让角色落地
     void LandOnGround(int groundHeight);
 
@@ -28,6 +28,11 @@ public:
 
     // 【新增】设置垂直速度 (RPG 模式需要上下走)
     void SetVelY(int velocity);
+
+    void SetX(float x) { xpos = x; }
+    void SetY(float y) { ypos = y; }
+    // 同时设置 X 和 Y
+    void SetPos(float x, float y) { xpos = x; ypos = y; }
 protected:
     float xpos, ypos;      // 改成 float 以便计算精细的物理
     float velX, velY;      // 速度 (Velocity)

@@ -108,6 +108,12 @@ void GameObject::Render() {
         // 3. 画这个转换后的 screenRect，而不是原始的 destRect
         TextureManager::Draw(objTexture, srcRect, screenRect, renderer, spriteFlip);
     } else {
+
+    // 【修复】这里原来直接画了 destRect，导致红块不随摄像机移动
+            SDL_Rect screenRect = destRect;
+            screenRect.x = destRect.x - Game::camera.x; // <--- 加上这一行
+            screenRect.y = destRect.y - Game::camera.y; // <--- 加上这一行
+
         // 图片没加载出来，画个红块
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_RenderFillRect(renderer, &destRect);
