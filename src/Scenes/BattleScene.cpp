@@ -200,7 +200,7 @@ void BattleScene::Update() {
                 currentState = VICTORY;
                 messageLog = "胜利！";
                 effectLog = "已征服对方主播";
-                Game::instance()->bossDefeatedCount +=1
+                Game::instance()->bossDefeatedCount +=1;
             } else {
                 currentState = ENEMY_TURN;
                 messageLog = "";
@@ -214,7 +214,7 @@ void BattleScene::Update() {
 
         // 5% 概率使用舰长一号
         int roll = rand() % 100;
-        if (roll < 5) {
+        if (roll < 25) {
             dmg = hugeGift.battery;
             enemyMove = hugeGift.name;
         }
