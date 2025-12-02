@@ -34,8 +34,8 @@ BattleScene::BattleScene() {
     uiBoxTexture = ResourceManager::GetTexture("dialogrect.png");
     cursorTexture = ResourceManager::GetTexture("point.png");
 
-    maxPlayerHP = 10000; playerHP = 10000;
-    maxEnemyHP = 10000; enemyHP = 10000;
+    maxPlayerHP = 8000; playerHP = 8000;
+    maxEnemyHP = 8000; enemyHP = 8000;
 
     currentState = PLAYER_TURN;
     messageLog = "";
@@ -199,7 +199,8 @@ void BattleScene::Update() {
             if (enemyHP <= 0) {
                 currentState = VICTORY;
                 messageLog = "胜利！";
-                effectLog = "对方已被你的魅力征服";
+                effectLog = "已征服对方主播";
+                Game::instance()->bossDefeatedCount +=1
             } else {
                 currentState = ENEMY_TURN;
                 messageLog = "";
