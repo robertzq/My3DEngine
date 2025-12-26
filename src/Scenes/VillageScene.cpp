@@ -20,9 +20,23 @@ void VillageScene::OnEnter() {
     // 2. 确定主角出生位置
     int startX = 100;
     int startY = 100;
+// === 【核心修复】优先级 1: 如果是回村庄，且有记忆坐标 ===
+    if (mapPath.find("village") != std::string::npos && Game::instance()->lastVillageX != -1) {
 
+        startX = Game::instance()->lastVillageX;
+        startY = Game::instance()->lastVillageY;
+
+        // 【非常重要】必须偏移一点位置！
+        // 因为你原来是在“撞到门”的时候记录的坐标。
+        // 如果直接放回原处，你一出生就会再次撞门 -> 再次进屋 -> 陷入死循环！
+        // 假设门都在房子上方，我们让主角向下挪 50 像素
+        startY += 50;
+
+        // (可选) 读取完后，可以重置它，也可以保留
+        // Game::instance()->lastVillageX = -1;
+    }
     // 如果指定了出生在入口 (ID: 15)，则扫描地图
-    if (shouldSpawnAtEntrance) {
+    else if (shouldSpawnAtEntrance) {
         std::vector<SDL_Rect> entrances = map->GetTiles(15);
         if (!entrances.empty()) {
             startX = entrances[0].x;
@@ -101,7 +115,8 @@ void VillageScene::Update() {
             std::cout << "进入房子..." << std::endl;
             // 切换到 house.map，并要求出生在入口位置 (true)
             std::string targetMap = "house1.map"; // 默认
-
+            Game::instance()->lastVillageX = player->GetBounds().x;
+            Game::instance()->lastVillageY = player->GetBounds().y;
             // 简单的根据坐标判断是哪个房子
             // 注意：这里的坐标数值需要你根据 village.map 的实际格子数算一下
             // 例如：上方的房子大概在 y < 300
