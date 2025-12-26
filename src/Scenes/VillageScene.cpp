@@ -5,7 +5,7 @@
 #include "ResourceManager.h"
 #include "SceneFactory.h"
 #include "RPGPlayer.h"
-#include "GiftBox.h"
+
 
 VillageScene::VillageScene(std::string mapFile, bool spawnAtEntrance)
     : mapPath(mapFile), shouldSpawnAtEntrance(spawnAtEntrance) {}
@@ -44,20 +44,23 @@ void VillageScene::OnEnter() {
     exitTriggers = map->GetTiles(15);  // 【新增】出门 (室内地毯)
 
     // 如果是村庄地图，并且BOSS打够了（这里假设先设为 0 用于测试，等你做完战斗逻辑再改成 3）
-    if (mapPath.find("village") != std::string::npos && Game::instance()->bossDefeatedCount >= 0) {
+    if (mapPath.find("village") != std::string::npos && Game::instance()->bossDefeatedCount >= 3) {
 
         // 在花圈中心 (大概是第10行, 第14列 -> x=14*32, y=10*32) 生成礼物
-
-       // objects.push_back(new GiftBox(14*32, 10*32));
-
         // 简单起见，我暂时先用文字提示你位置
         std::cout << "【彩蛋】礼物盒已出现在广场中心！ 352，320" << std::endl;
+        gifts.push_back(new GiftBox(320, 288));
     }
 }
 
 void VillageScene::OnExit() {
     delete player;
     delete map;
+    // 【新增】清理礼物盒内存
+    for (auto g : gifts) {
+        delete g;
+    }
+    gifts.clear();
 }
 
 void VillageScene::HandleEvents(SDL_Event& event) {
@@ -130,6 +133,14 @@ void VillageScene::Update() {
             return;
         }
     }
+
+    for (auto g : gifts) {
+        // 如果碰到了，并且还没打开
+        if (!g->IsOpened() && Physics::CheckCollision(player->GetBounds(), g->GetBounds())) {
+            std::cout << "触碰礼物盒！生日快乐！" << std::endl;
+            g->Open(); // 打开盒子，GiftBox 内部会处理 flag 并在 Render 时画出横幅
+        }
+    }
     // --- 5. 检测 BOSS ---
     for (const auto& bossZone : bossTriggers) {
         if (Physics::CheckCollision(player->GetBounds(), bossZone)) {
@@ -165,6 +176,9 @@ void VillageScene::Update() {
 void VillageScene::Render() {
     map->DrawMap();
     player->Render();
+    for (auto g : gifts) {
+        g->Render();
+    }
 }
 
 // 注册工厂

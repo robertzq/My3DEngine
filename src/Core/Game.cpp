@@ -77,15 +77,16 @@ void Game::ChangeScene(Scene* newScene) {
 }
 
 void Game::handleEvents() {
-    SDL_PollEvent(&event);
-    switch (event.type) {
-        case SDL_QUIT:
-            isRunning = false;
-            break;
-        default:
-            // 把事件传给当前场景处理
-            if (currentScene) currentScene->HandleEvents(event);
-            break;
+    while(SDL_PollEvent(&event)){
+        switch (event.type) {
+            case SDL_QUIT:
+                isRunning = false;
+                break;
+            default:
+                // 把事件传给当前场景处理
+                if (currentScene) currentScene->HandleEvents(event);
+                break;
+        }
     }
 }
 

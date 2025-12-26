@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include "GameObject.h"
 #include "Map.h"
+#include "GiftBox.h"
 #include <string>
 #include <vector>
 
@@ -24,6 +25,8 @@ private:
     GameObject* player;
     Map* map;
 
+// 【新增】用来管理场景里的礼物盒
+    std::vector<GiftBox*> gifts;
     // 触发器列表
     std::vector<SDL_Rect> doorTriggers; // ID: 7 (进房子)
     std::vector<SDL_Rect> bossTriggers; // ID: 14 (打BOSS)

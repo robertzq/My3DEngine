@@ -5,7 +5,7 @@
 GiftBox::GiftBox(int x, int y) {
     // 1. 加载图片素材
     boxTexture = ResourceManager::GetTexture("gift.png");
-    bannerTexture = ResourceManager::GetTexture("100daysbanner.png");
+    bannerTexture = ResourceManager::GetTexture("birthbanner.png");
 
 // --- 【新增】错误检查 ---
     if (boxTexture == nullptr) {
@@ -62,12 +62,12 @@ void GiftBox::Render() {
     screenBox.y = boxRect.y - Game::camera.y;
 
     // --- 【核心修改】只有在没打开的时候，才画盒子 ---
-    if (!isOpened) {
+    //if (!isOpened) { //注释掉以后，弹出banner后，不会让礼盒消失
         if(boxTexture) {
 
             TextureManager::DrawWhole(boxTexture, screenBox, Game::renderer, SDL_FLIP_NONE);
         }
-    }
+    //}
 
     // 别忘了把颜色改回白色，否则背景或其他东西会变色
     SDL_SetRenderDrawColor(Game::renderer, 255, 255, 255, 255);
