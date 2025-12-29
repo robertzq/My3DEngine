@@ -11,11 +11,17 @@ public:
     void Update() override;
 
     SDL_Rect GetBounds() override;
+
+    // 【新增】专门的方法来开启/关闭移动能力
+    void SetInputEnabled(bool enabled);
+
 private:
     int totalRows;
     int currentDirection;
     bool isMoving;
 
+// 【新增】这个变量决定玩家是否能响应按键
+    bool inputEnabled = true; // 默认为 true
     // 方向枚举
     enum Direction {
         DOWN = 0,

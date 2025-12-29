@@ -12,6 +12,8 @@ public:
 
     void Open();          // 打开盒子的动作
     bool IsOpened();      // 检查盒子是否已经打开
+    void closeBanner();
+    bool IsBannerClosed();
 
 private:
     SDL_Texture* boxTexture;
@@ -21,4 +23,8 @@ private:
     SDL_Rect bannerRect; // 横幅的位置和大小
 
     bool isOpened;       // 状态标记：是否打开了
+
+    // --- 【新增】记录打开的时间 ---
+    Uint32 openTime = 0;
+    bool isBannerDismissed = false;
 };
