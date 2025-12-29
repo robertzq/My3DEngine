@@ -22,6 +22,12 @@ RPGPlayer::RPGPlayer(const char* resourceId, SDL_Renderer* ren, int x, int y, in
 }
 
 void RPGPlayer::Update() {
+    if (!inputEnabled) {
+        // 可能还需要由 GameObject 父类提供的动画更新，
+        // 确保动画停留在“站立”帧，而不是卡在“迈腿”的那一帧
+        // PlayAnimation(currentDirection * numFrames); // 播放第一帧(静止帧)
+        return;
+    }
     // 1. 简单的物理移动 (直接操作 protected 变量)
     xpos += velX;
     ypos += velY;
@@ -108,4 +114,16 @@ SDL_Rect RPGPlayer::GetBounds() {
     bounds.h = destRect.h - bufferY_Top - bufferY_Bottom;
 
     return bounds;
+}
+
+void RPGPlayer::SetInputEnabled(bool enabled) {
+    this->inputEnabled = enabled;
+
+    // 如果被禁用了，立刻停止移动状态，防止“滑步”或原地踏步
+    if (!enabled) {
+        this->isMoving = false;
+        // 如果你有速度变量，也要清零，例如：
+        // this->mVelX = 0;
+        // this->mVelY = 0;
+    }
 }

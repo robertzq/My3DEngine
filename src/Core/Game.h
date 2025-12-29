@@ -37,6 +37,9 @@ public:
 
     int bossDefeatedCount = 0; // 新增：记录打败BOSS的数量
 
+    int lastVillageX = -1;
+    int lastVillageY = -1;
+
 private:
     bool isRunning;
     SDL_Window* window;
