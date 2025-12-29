@@ -381,7 +381,7 @@ void VillageScene::Render() {
 
                     // 2. 画最终文字
                     SDL_Color gold = {255, 215, 0, (Uint8)finalAlpha};
-                    DrawTextHelper("聪明美丽可爱的拉", 250, 500 - 100, 32, gold);
+                    DrawTextHelper("可爱美丽聪明的拉", 250, 500 - 100, 32, gold);
 
                     SDL_Color white = {200, 200, 200, (Uint8)finalAlpha};
                     DrawTextHelper("Verified by Zhao", 550, 550 - 30, 14, white);
