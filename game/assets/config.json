@@ -1,0 +1,20 @@
+{
+  "game_title": "RBT Engine v1.0",
+  "initial_index": 1,
+  "level_sequence": [
+    {
+      "type": "PlayScene",
+      "name": "Level 1",
+      "params": {
+        "map_file": "level1.map"
+      }
+    },
+    {
+      "type": "VillageScene",
+      "name": "My Village",
+      "params": {
+        "map_file": "village.map"
+      }
+    }
+  ]
+}
