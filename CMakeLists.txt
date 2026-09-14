@@ -11,3 +11,9 @@ endif()
 
 # 引擎库
 add_subdirectory(engine)
+
+# ??????? -DMYENGINE_BUILD_DEMO=OFF ???
+option(MYENGINE_BUILD_DEMO "Build the MyEngine demo executable" ON)
+if(MYENGINE_BUILD_DEMO)
+    add_subdirectory(examples/demo)
+endif()

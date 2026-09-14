@@ -74,9 +74,3 @@ if(APPLE)
 endif()
 
 target_link_libraries(engine PUBLIC ${ENGINE_LIBS})
-
-# --- 引擎示例（可用 -DMYENGINE_BUILD_DEMO=OFF 关闭） ---
-option(MYENGINE_BUILD_DEMO "Build the MyEngine demo executable" ON)
-if(MYENGINE_BUILD_DEMO)
-    add_subdirectory(examples/demo)
-endif()
