@@ -57,10 +57,10 @@ void PlayerBehavior::Animate(bool moving) {
 
 void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
     int dx = 0, dy = 0;
-    if (Input::IsKeyDown(SDL_SCANCODE_A)) dx -= 1;
-    if (Input::IsKeyDown(SDL_SCANCODE_D)) dx += 1;
-    if (Input::IsKeyDown(SDL_SCANCODE_W)) dy -= 1;
-    if (Input::IsKeyDown(SDL_SCANCODE_S)) dy += 1;
+    if (Input::Down("MoveLeft")) dx -= 1;
+    if (Input::Down("MoveRight")) dx += 1;
+    if (Input::Down("MoveUp")) dy -= 1;
+    if (Input::Down("MoveDown")) dy += 1;
 
     // speed 为像素/秒，乘以 dt 得到本帧位移（与帧率无关）
     velX = dx * speed * deltaTime;

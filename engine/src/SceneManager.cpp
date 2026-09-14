@@ -3,6 +3,7 @@
 #include "Engine/BehaviorRegistry.h"
 #include "Engine/Config.h"
 #include "Engine/Game.h"
+#include "Engine/Input.h"
 #include "Engine/Log.h"
 #include "Engine/Physics.h"
 #include "Engine/ResourceManager.h"
@@ -59,6 +60,37 @@ bool SceneManager::LoadConfig(const std::string& configResourceId) {
         initialSpawn = config["initial"].value("spawn", "default");
     } else {
         initialScene = config.value("initial_scene", "");
+    }
+
+    if (config.contains("input") && config["input"].is_object()) {
+        const json& in = config["input"];
+        if (in.contains("actions") && in["actions"].is_object()) {
+            for (auto it = in["actions"].begin(); it != in["actions"].end(); ++it) {
+                std::vector<std::string> keys;
+                if (it.value().is_array()) {
+                    for (const auto& k : it.value()) keys.push_back(k.get<std::string>());
+                } else if (it.value().is_string()) {
+                    keys.push_back(it.value().get<std::string>());
+                }
+                Input::Bind(it.key(), keys);
+            }
+        } else {
+            // 扁平写法：{ "MoveLeft": ["A", "LEFT"], ... }
+            for (auto it = in.begin(); it != in.end(); ++it) {
+                if (it.key() == "axes" || !it.value().is_array()) continue;
+                std::vector<std::string> keys;
+                for (const auto& k : it.value()) keys.push_back(k.get<std::string>());
+                Input::Bind(it.key(), keys);
+            }
+        }
+        if (in.contains("axes") && in["axes"].is_object()) {
+            for (auto it = in["axes"].begin(); it != in["axes"].end(); ++it) {
+                if (it.value().is_array() && it.value().size() >= 2) {
+                    Input::BindAxis(it.key(), it.value()[0].get<std::string>(),
+                                    it.value()[1].get<std::string>());
+                }
+            }
+        }
     }
 
     LOG_INFO("SceneManager: 已加载 " << scenes.size() << " 个场景, " << tilesets.size() << " 个图块集");
