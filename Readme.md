@@ -1,118 +1,134 @@
 # My2DEngine
 
-基于 C++ 和 SDL2 开发的 2D RPG 游戏引擎演示项目。
-本项目包含了一个完整的 RPG 游戏流程，展示了场景切换、地图加载、碰撞检测以及回合制战斗系统。
+一个轻量的 **C++17 + SDL2** 2D 游戏引擎，以及一个用来验证引擎机制的演示游戏（birthday RPG）。
 
-## ✨ 功能特性 (Features)
+引擎设计思想：**引擎只提供通用机制，不包含任何游戏逻辑、美术资源或关卡数据**。
+地图加载、场景定义、场景切换全部由引擎负责，并且通过 JSON 配置文件驱动。
+游戏侧只需要写「场景脚本」——即每帧的渲染代码，逻辑交给 Controller。
 
-* **核心引擎架构**：
-    * 基于 `Scene` 的状态管理（支持场景堆栈和切换）。
-    * 单例模式的 `Game` 核心控制器。
-    * 资源管理系统 (`ResourceManager`)，支持纹理缓存。
-* **游戏性**：
-    * **RPG 探索**：支持顶视角的 2D 地图探索。
-    * **场景切换**：支持从村庄进入房屋、从房屋触发战斗等场景流转。
-    * **地图系统**：支持加载 `.map` 文本格式的地图文件（包含墙壁、装饰、触发器层）。
-    * **战斗系统**：触发式 BOSS 战（Slime, Goblin, King），支持战斗结束后返回原地图位置。
-* **技术栈**：
-    * **语言**：C++17
-    * **构建工具**：CMake (跨平台支持 Windows & macOS)
-    * **图形库**：SDL2, SDL2_image, SDL2_ttf
-    * **数据解析**：nlohmann/json
+---
 
-## 📂 项目结构
-
-引擎与游戏完全分离：`engine/` 是可复用的引擎库，`game/` 是具体的游戏项目。
+## ✨ 架构（MVC）
 
 ```text
-.
-├── engine/                 # 可复用的 2D 游戏引擎（独立编译成静态库 libengine.a）
-│   ├── include/Engine/     # 引擎公共 API 头文件
-│   │   ├── Game.h          #   游戏循环 + 场景管理
-│   │   ├── Scene.h         #   场景基类
-│   │   ├── SceneFactory.h  #   场景自注册工厂
-│   │   ├── GameObject.h    #   通用游戏对象基类
-│   │   ├── ResourceManager.h # 资源加载 + 缓存 + 绘制
-│   │   ├── TextRenderer.h  #   文字渲染（SDL_ttf）
-│   │   ├── Input.h         #   输入轮询
-│   │   ├── Physics.h       #   AABB 碰撞检测
-│   │   └── (Config / Log / json.hpp) ...
-│   └── src/                # 引擎实现
-├── game/                   # 生日 RPG 游戏（链接引擎库）
-│   ├── src/                # 游戏逻辑（main、实体、地图、GameState）
-│   │   └── Scenes/         #   具体游戏场景 (VillageScene, BattleScene 等)
-│   ├── assets/             # 游戏资源 (图片, 字体, 地图文件, JSON配置)
-│   └── tools/              # 资源打包脚本 (embed_assets.py)
-├── CMakeLists.txt          # 顶层 CMake 构建配置
-└── runGame.sh              # 快速启动脚本
+Model       (引擎)   SceneData / TileSet / TileMap      ← 由 config.json 解析出的数据
+Controller  (引擎)   SceneManager                       ← 地图加载、出生点、触发器、转场、相机
+Controller  (游戏)   SceneController 子类                ← 可选：玩家移动、战斗状态机、过场演出
+View        (游戏)   SceneView 子类                      ← 场景脚本，只负责每帧渲染
 ```
 
-> 写新游戏只需新建一个 `game/` 目录，`#include "Engine/..."` 并链接 `engine` 库，
-> 通过 `ResourceManager::SetResourceTable()` 注入自己的资源即可，引擎代码无需改动。
-## 🚀 快速开始 (Getting Started)
-1. 环境依赖 (Prerequisites)
-本项目依赖 SDL2 系列库。
+* 场景脚本（View）不碰地图解析、不写 `ChangeScene`、不管相机，只实现 `Render()`。
+* 场景之间的跳转写在配置文件里：踩到某个图块触发器 → 引擎自动切到目标场景和出生点。
+* 游戏需要动态转场时，Controller 调用 `context.manager->RequestScene(...)` / `RequestTransition(...)`。
 
-macOS (Homebrew):
+---
 
-Bash
+## 📂 目录结构
+
+```text
+engine/
+├── include/Engine/
+│   ├── Game.h            # SDL 初始化 + 主循环，持有 SceneManager
+│   ├── SceneManager.h    # 控制器：配置加载、场景切换、相机、触发器
+│   ├── SceneData.h       # 数据模型：场景定义 / 转场 / 出生点
+│   ├── TileSet.h         # 图块集：纹理、是否阻挡、触发器名
+│   ├── TileMap.h         # 通用瓦片地图：解析 / 绘制 / 碰撞盒 / 触发器
+│   ├── SceneView.h       # 视图基类（场景脚本，只渲染）
+│   ├── SceneController.h # 控制器基类（游戏逻辑）
+│   ├── SceneContext.h    # 传给 View/Controller 的运行时上下文
+│   ├── SceneRegistry.h   # View/Controller 自注册工厂
+│   ├── GameObject.h / Physics.h / ResourceManager.h / TextRenderer.h / Input.h
+│   └── Config.h / Log.h / json.hpp
+└── src/                  # 引擎实现
+
+game/                     # 演示游戏（只是引擎的使用者）
+├── assets/config.json    # 数据驱动核心：tilesets + scenes + transitions
+├── src/main.cpp          # 只做：注入资源、初始化、交给 SceneManager
+├── src/Views/            # 场景脚本（VillageView / BattleView / PlayView）
+├── src/Controllers/      # 游戏逻辑（VillageController / BattleController / PlayController）
+├── src/RPGPlayer.* 等    # 游戏实体
+└── tools/embed_assets.py # 资源打包
+```
+
+---
+
+## ⚙️ 配置文件 `game/assets/config.json`
+
+```jsonc
+{
+  "initial": { "scene": "village", "spawn": "default" },
+
+  "tilesets": {
+    "overworld": {
+      "tile_size": 32,
+      "tiles": {
+        "1": { "texture": "tree.png", "solid": true },
+        "7": { "texture": "door.png", "trigger": "to_house1" },
+        "15": { "texture": "entrance.png", "trigger": "exit" },
+        "17": { "texture": "mic.png", "trigger": "boss" }
+      }
+    }
+  },
+
+  "scenes": {
+    "village": {
+      "view": "VillageView",
+      "controller": "VillageController",
+      "map": "village.map",
+      "tileset": "overworld",
+      "spawns": { "default": [100, 100], "from_house1": [192, 230] },
+      "transitions": [
+        { "trigger": "to_house1", "target": "house1", "spawn": "entrance" }
+      ]
+    },
+    "battle": {
+      "view": "BattleView",
+      "controller": "BattleController",
+      "params": { "return_scene": "village" }
+    }
+  }
+}
+```
+
+* `view` / `controller` 填注册名，引擎用 `SceneRegistry` 创建。
+* `transitions[].automatic = false` 的触发器不会被引擎自动处理，交给游戏 Controller
+  （例如 BOSS 战需要携带“返回坐标”这类运行时参数，用 `RequestTransition("boss", {...})`）。
+* `spawn_x` / `spawn_y` 作为运行时参数可覆盖配置里的出生点，用于“战斗结束回到原地”。
+
+---
+
+## 🔁 数据驱动的转场流程
+
+```text
+玩家走到 trigger 图块
+  → SceneManager::CheckTransitions() 命中 config 中的 transition
+  → 按 target / spawn 加载新场景，重建 TileMap、按出生点放置玩家
+  → 相机自动跟随并 clamp 到地图边界
+```
+
+游戏侧不再出现 `Map::LoadMap`、`ChangeScene(new XxxScene(...))`、硬编码坐标判断。
+
+---
+
+## 🚀 构建与运行
+
 ```shell
-    brew install cmake
-    brew install sdl2
-    brew install sdl2_image
-    brew install sdl2_ttf
+brew install cmake sdl2 sdl2_image sdl2_ttf
+./runGame.sh
+# 或
+mkdir -p build && cd build && cmake .. && make && cd .. && ./build/MyEngine
 ```
 
-Windows: 推荐使用 vcpkg 安装 SDL2 库，或者下载开发包并配置环境变量。 注：本项目 CMakeLists.txt 已包含针对 Windows MSVC 的 UTF-8 编码修复及路径自动检测。
+操作：`W A S D` 移动，`空格` 跳跃/确认，`回车` 交互。
 
-2. 构建项目 (Build)
-在项目根目录下执行以下命令：
+---
 
-Bash
-```shell
-# 1. 创建构建目录
-mkdir build
-cd build
+## 🧩 写一个新游戏
 
-# 2. 生成 Makefile
-cmake ..
+1. 新建 `game/`，在 `main.cpp` 里 `ResourceManager::SetResourceTable(...)` 注入资源，
+   再 `game.scenes().LoadConfig("config.json")` 与 `Start()`。
+2. 写 `SceneView` 子类（只实现 `Render`）和可选的 `SceneController` 子类。
+3. 用 `SceneRegistry::ViewProxy` / `ControllerProxy` 自注册。
+4. 在 `config.json` 里定义 tileset、场景、出生点与转场。
 
-# 3. 编译（会先构建 engine 静态库，再链接 game；同时自动嵌入游戏资源）
-make
-```
-
-> 游戏资源由 `game/tools/embed_assets.py` 在构建时自动打包成 `EmbeddedAssets.h`（带增量判断），
-> 无需手动执行该脚本。
-
-3. 运行游戏 (Run)
-方式 A：直接运行二进制文件（资源已内嵌，无需依赖 assets 路径）：
-
-Bash
-```shell
-  ./build/MyEngine
-```
-
-方式 B：使用脚本 (macOS/Linux)
-```shell
-  ./runGame.sh
-```
-
-🎮 操作说明 (Controls)
-移动：W A S D
-
-交互/确认：(根据具体逻辑补充，例如空格或回车)
-
-退出：点击窗口关闭按钮
-
-### 🛠️ 开发日志
-渲染循环：Input -> Update -> Render -> Delay (60 FPS Lock).
-
-### 场景流：
-
-VillageScene: 初始场景，包含 NPC 和房屋入口。
-
-HouseScene: 室内场景，包含 BOSS 触发区域。
-
-BattleScene: 战斗场景，回合制逻辑。
-
-Created by Robertzq
+引擎代码无需改动。

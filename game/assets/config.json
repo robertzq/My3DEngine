@@ -1,20 +1,95 @@
 {
-  "game_title": "RBT Engine v1.0",
-  "initial_index": 1,
-  "level_sequence": [
-    {
-      "type": "PlayScene",
-      "name": "Level 1",
-      "params": {
-        "map_file": "level1.map"
-      }
-    },
-    {
-      "type": "VillageScene",
-      "name": "My Village",
-      "params": {
-        "map_file": "village.map"
+  "game_title": "RBT Engine v2.0",
+  "initial": { "scene": "village", "spawn": "default" },
+  "tilesets": {
+    "overworld": {
+      "tile_size": 32,
+      "tiles": {
+        "0":  { "texture": "grass.png" },
+        "1":  { "texture": "tree.png", "solid": true },
+        "2":  { "texture": "dirt.png" },
+        "3":  { "texture": "water.png", "solid": true },
+        "4":  { "texture": "bridge.png" },
+        "5":  { "texture": "wall.png", "solid": true },
+        "6":  { "texture": "roof.png", "solid": true },
+        "7":  { "texture": "door.png", "trigger": "to_house1" },
+        "8":  { "texture": "flower.png" },
+        "9":  { "texture": "fence.png", "solid": true },
+        "10": { "texture": "wood.png" },
+        "11": { "texture": "inWall.png", "solid": true },
+        "12": { "texture": "rug.png" },
+        "13": { "texture": "sofa.png", "solid": true },
+        "14": { "texture": "stage.png" },
+        "15": { "texture": "entrance.png", "trigger": "exit" },
+        "16": { "texture": "decor.png" },
+        "17": { "texture": "mic.png", "trigger": "boss" },
+        "18": { "texture": "door.png", "trigger": "to_house2" },
+        "19": { "texture": "door.png", "trigger": "to_house3" }
       }
     }
-  ]
+  },
+  "scenes": {
+    "level1": {
+      "view": "PlayView",
+      "controller": "PlayController",
+      "map": "level1.map",
+      "tileset": "overworld",
+      "spawns": { "default": [0, 0] }
+    },
+    "village": {
+      "view": "VillageView",
+      "controller": "VillageController",
+      "map": "village.map",
+      "tileset": "overworld",
+      "spawns": {
+        "default": [100, 100],
+        "from_house1": [192, 230],
+        "from_house2": [736, 262],
+        "from_house3": [160, 656]
+      },
+      "transitions": [
+        { "trigger": "to_house1", "target": "house1", "spawn": "entrance" },
+        { "trigger": "to_house2", "target": "house2", "spawn": "entrance" },
+        { "trigger": "to_house3", "target": "house3", "spawn": "entrance" }
+      ]
+    },
+    "house1": {
+      "view": "VillageView",
+      "controller": "VillageController",
+      "map": "house1.map",
+      "tileset": "overworld",
+      "spawns": { "default": [128, 186], "entrance": [128, 186] },
+      "transitions": [
+        { "trigger": "exit", "target": "village", "spawn": "from_house1" },
+        { "trigger": "boss", "target": "battle", "automatic": false }
+      ]
+    },
+    "house2": {
+      "view": "VillageView",
+      "controller": "VillageController",
+      "map": "house2.map",
+      "tileset": "overworld",
+      "spawns": { "default": [128, 186], "entrance": [128, 186] },
+      "transitions": [
+        { "trigger": "exit", "target": "village", "spawn": "from_house2" },
+        { "trigger": "boss", "target": "battle", "automatic": false }
+      ]
+    },
+    "house3": {
+      "view": "VillageView",
+      "controller": "VillageController",
+      "map": "house3.map",
+      "tileset": "overworld",
+      "spawns": { "default": [128, 186], "entrance": [128, 186] },
+      "transitions": [
+        { "trigger": "exit", "target": "village", "spawn": "from_house3" },
+        { "trigger": "boss", "target": "battle", "automatic": false }
+      ]
+    },
+    "battle": {
+      "view": "BattleView",
+      "controller": "BattleController",
+      "params": { "return_scene": "village" }
+    }
+  }
 }

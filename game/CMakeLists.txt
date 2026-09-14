@@ -21,10 +21,12 @@ add_executable(MyEngine
     src/RPGPlayer.cpp
     src/GiftBox.cpp
     src/Collectible.cpp
-    src/Map.cpp
-    src/Scenes/VillageScene.cpp
-    src/Scenes/BattleScene.cpp
-    src/Scenes/PlayScene.cpp
+    src/Controllers/VillageController.cpp
+    src/Controllers/BattleController.cpp
+    src/Controllers/PlayController.cpp
+    src/Views/VillageView.cpp
+    src/Views/BattleView.cpp
+    src/Views/PlayView.cpp
 )
 
 target_include_directories(MyEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

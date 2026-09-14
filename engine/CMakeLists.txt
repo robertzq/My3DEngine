@@ -36,6 +36,8 @@ add_library(engine STATIC
     src/ResourceManager.cpp
     src/TextRenderer.cpp
     src/Physics.cpp
+    src/TileMap.cpp
+    src/SceneManager.cpp
 )
 
 target_include_directories(engine
