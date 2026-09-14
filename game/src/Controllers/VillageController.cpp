@@ -4,6 +4,7 @@
 #include "Behaviors/PlayerBehavior.h"
 #include "Engine/Config.h"
 #include "Engine/Entity.h"
+#include "Engine/Input.h"
 #include "Engine/Log.h"
 #include "Engine/Physics.h"
 #include "Engine/SceneManager.h"
@@ -37,9 +38,8 @@ void VillageController::OnEnter(SceneContext& context) {
 
 void VillageController::OnExit() {}
 
-void VillageController::HandleEvent(SceneContext& context, SDL_Event& event) {
-    if (state != VillageState::Playing) return;
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN) {
+void VillageController::Update(SceneContext& context) {
+    if (state == VillageState::Playing && Input::Pressed("Interact")) {
         for (Entity* entity : context.manager->Entities()) {
             auto* gift = dynamic_cast<GiftBoxBehavior*>(entity->behavior.get());
             if (gift && gift->IsOpened() && !gift->IsBannerClosed()) {
@@ -48,9 +48,7 @@ void VillageController::HandleEvent(SceneContext& context, SDL_Event& event) {
             }
         }
     }
-}
 
-void VillageController::Update(SceneContext& context) {
     Entity* player = context.manager->Player();
     if (!player) return;
 

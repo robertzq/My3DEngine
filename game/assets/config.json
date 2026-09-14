@@ -1,6 +1,22 @@
 {
   "game_title": "RBT Engine v2.0",
   "initial": { "scene": "village", "spawn": "default" },
+  "input": {
+    "actions": {
+      "MoveLeft":  ["A", "LEFT"],
+      "MoveRight": ["D", "RIGHT"],
+      "MoveUp":    ["W", "UP"],
+      "MoveDown":  ["S", "DOWN"],
+      "Interact":  ["E", "RETURN"],
+      "Jump":      ["SPACE"],
+      "Confirm":   ["RETURN", "SPACE"],
+      "Pause":     ["ESCAPE"]
+    },
+    "axes": {
+      "Horizontal": ["MoveLeft", "MoveRight"],
+      "Vertical":   ["MoveUp", "MoveDown"]
+    }
+  },
   "tilesets": {
     "overworld": {
       "tile_size": 32,

@@ -24,7 +24,6 @@ class VillageController : public SceneController {
 public:
     void OnEnter(SceneContext& context) override;
     void OnExit() override;
-    void HandleEvent(SceneContext& context, SDL_Event& event) override;
     void Update(SceneContext& context) override;
 
     VillageState state = VillageState::Playing;

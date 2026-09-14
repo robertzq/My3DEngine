@@ -19,7 +19,6 @@ class BattleController : public SceneController {
 public:
     void OnEnter(SceneContext& context) override;
     void OnExit() override;
-    void HandleEvent(SceneContext& context, SDL_Event& event) override;
     void Update(SceneContext& context) override;
 
     SDL_Texture* bgTexture = nullptr;
@@ -64,6 +63,7 @@ public:
     int returnY = -1;
 
 private:
+    void HandleInput(SceneContext& context);
     void LoadGifts();
     std::string DamageText(int damage) const;
     void LeaveBattle(SceneContext& context);

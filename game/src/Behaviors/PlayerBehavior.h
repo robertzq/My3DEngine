@@ -6,7 +6,6 @@ class PlayerBehavior : public Behavior {
 public:
     void OnSpawn(SceneContext& context) override;
     void Update(SceneContext& context, float deltaTime) override;
-    void HandleEvent(SceneContext& context, SDL_Event& event) override;
 
     void SetInputEnabled(bool enabled) { inputEnabled = enabled; }
     bool IsInputEnabled() const { return inputEnabled; }

@@ -1,6 +1,7 @@
 #include "Controllers/BattleController.h"
 #include <cstdlib>
 #include "Engine/Game.h"
+#include "Engine/Input.h"
 #include "Engine/Log.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/SceneManager.h"
@@ -102,57 +103,55 @@ void BattleController::LeaveBattle(SceneContext& context) {
     context.manager->RequestScene(returnScene, "default", params);
 }
 
-void BattleController::HandleEvent(SceneContext& context, SDL_Event& event) {
-    if (event.type != SDL_KEYDOWN) return;
-
+void BattleController::HandleInput(SceneContext& context) {
     if (currentState == PLAYER_TURN) {
-        int damage = 0;
-        std::string moveName;
-        switch (event.key.keysym.sym) {
-            case SDLK_UP: menuIndex = (menuIndex - 2 + 4) % 4; break;
-            case SDLK_DOWN: menuIndex = (menuIndex + 2) % 4; break;
-            case SDLK_LEFT: menuIndex = (menuIndex % 2 != 0) ? menuIndex - 1 : menuIndex + 1; break;
-            case SDLK_RIGHT: menuIndex = (menuIndex % 2 == 0) ? menuIndex + 1 : menuIndex - 1; break;
-            case SDLK_RETURN:
-            case SDLK_SPACE:
-                if (menuIndex == 1 && hugeGiftCD > 0) return;
-                if (menuIndex == 0) {
-                    damage = basicGift.battery;
-                    moveName = basicGift.name;
-                } else if (menuIndex == 1) {
-                    damage = hugeGift.battery;
-                    moveName = hugeGift.name;
-                    hugeGiftCD = MAX_HUGE_GIFT_CD;
-                } else if (menuIndex == 2) {
-                    if (!blindBoxPool.empty()) {
-                        Gift gift = blindBoxPool[rand() % blindBoxPool.size()];
-                        damage = gift.battery;
-                        moveName = "盲盒爆出" + gift.name;
-                    } else {
-                        damage = 1;
-                        moveName = "盲盒（空）";
-                    }
-                } else {
-                    damage = starWishGift.battery;
-                    moveName = starWishGift.name;
-                }
+        if (Input::Pressed("MoveUp"))    menuIndex = (menuIndex - 2 + 4) % 4;
+        if (Input::Pressed("MoveDown"))  menuIndex = (menuIndex + 2) % 4;
+        if (Input::Pressed("MoveLeft"))  menuIndex = (menuIndex % 2 != 0) ? menuIndex - 1 : menuIndex + 1;
+        if (Input::Pressed("MoveRight")) menuIndex = (menuIndex % 2 == 0) ? menuIndex + 1 : menuIndex - 1;
 
-                enemyHP -= damage;
-                if (enemyHP < 0) enemyHP = 0;
-                messageLog = ToFullWidth("我方使用 " + moveName + " 造成 " + std::to_string(damage) + "电池 伤害");
-                effectLog = ToFullWidth(DamageText(damage));
-                shakeTarget = SHAKE_ENEMY;
-                shakeTimer = 20;
-                currentState = PLAYER_ANIM;
-                break;
-            default: break;
+        if (Input::Pressed("Confirm")) {
+            if (menuIndex == 1 && hugeGiftCD > 0) return;
+
+            int damage = 0;
+            std::string moveName;
+            if (menuIndex == 0) {
+                damage = basicGift.battery;
+                moveName = basicGift.name;
+            } else if (menuIndex == 1) {
+                damage = hugeGift.battery;
+                moveName = hugeGift.name;
+                hugeGiftCD = MAX_HUGE_GIFT_CD;
+            } else if (menuIndex == 2) {
+                if (!blindBoxPool.empty()) {
+                    Gift gift = blindBoxPool[rand() % blindBoxPool.size()];
+                    damage = gift.battery;
+                    moveName = "盲盒爆出" + gift.name;
+                } else {
+                    damage = 1;
+                    moveName = "盲盒（空）";
+                }
+            } else {
+                damage = starWishGift.battery;
+                moveName = starWishGift.name;
+            }
+
+            enemyHP -= damage;
+            if (enemyHP < 0) enemyHP = 0;
+            messageLog = ToFullWidth("我方使用 " + moveName + " 造成 " + std::to_string(damage) + "电池 伤害");
+            effectLog = ToFullWidth(DamageText(damage));
+            shakeTarget = SHAKE_ENEMY;
+            shakeTimer = 20;
+            currentState = PLAYER_ANIM;
         }
     } else if (currentState == VICTORY || currentState == DEFEAT) {
-        LeaveBattle(context);
+        if (Input::AnyPressed()) LeaveBattle(context);
     }
 }
 
 void BattleController::Update(SceneContext& context) {
+    HandleInput(context);
+
     if (shakeTimer > 0 && --shakeTimer <= 0) shakeTarget = SHAKE_NONE;
 
     if (currentState == PLAYER_ANIM) {
