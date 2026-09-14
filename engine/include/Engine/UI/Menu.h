@@ -1,5 +1,7 @@
 #pragma once
 #include "Engine/UI/UIContainer.h"
+#include "Engine/UI/UIAction.h"
+#include <vector>
 
 // Menu = UIElement 容器 + focus/navigation 状态。不含 input/action 逻辑。
 // focus order = children 顺序中的可 focus 项（visible && enabled && focusable）。
@@ -17,9 +19,18 @@ public:
     void ClearFocus();
     UIElement* Focused() const { return focus; }
 
-    // 本 Step 仅提供 hook；action 分发/输入路由在后续 Step
-    virtual void Confirm() {}
-    virtual void Cancel() {}
+    // ---- action model ----
+    // Menu/组件只产出 UIAction；上层用 ConsumeActions()/PendingActions() 取走。
+    void ActivateFocused();        // UIConfirm：分发给聚焦元素（无聚焦 -> menu Confirm）
+    void AdjustFocused(int dir);   // UILeft(-1)/UIRight(+1)
+    void EmitAction(const std::string& elementId, const std::string& action,
+                    nlohmann::json value = nlohmann::json());
+    std::vector<UIAction> ConsumeActions();                    // move 并清空
+    const std::vector<UIAction>& PendingActions() const { return actions; }
+
+    // menu 级默认 action；子类可覆写（不调用基类则自行产生 action）
+    virtual void Confirm();
+    virtual void Cancel();
 
     void Update(float dt) override;
     void Render() override;
@@ -29,4 +40,5 @@ protected:
     void EnsureFocusValid();                            // focus 失效时自动迁移
 
     UIElement* focus = nullptr;
+    std::vector<UIAction> actions;
 };

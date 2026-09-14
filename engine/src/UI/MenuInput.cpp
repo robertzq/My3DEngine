@@ -29,10 +29,7 @@ void Handle(Menu& menu, float dt) {
 
     UIElement* focused = menu.Focused();
 
-    if (Input::Pressed("UIConfirm")) {
-        if (focused) focused->Activate();
-        else menu.Confirm();
-    }
+    if (Input::Pressed("UIConfirm")) menu.ActivateFocused();
     if (Input::Pressed("UICancel")) menu.Cancel();
 
     // 左右：可连发组件（Slider）按住连发；其余（Toggle）只在按下的边沿调整一次。
@@ -43,8 +40,8 @@ void Handle(Menu& menu, float dt) {
     if (!focused || dir == 0 || !focused->RepeatableAdjust()) {
         ResetRepeat();
         if (focused) {
-            if (Input::Pressed("UILeft")) focused->Adjust(-1);
-            if (Input::Pressed("UIRight")) focused->Adjust(+1);
+            if (Input::Pressed("UILeft")) menu.AdjustFocused(-1);
+            if (Input::Pressed("UIRight")) menu.AdjustFocused(+1);
         }
         return;
     }
@@ -53,14 +50,14 @@ void Handle(Menu& menu, float dt) {
         repeatTarget = focused;
         repeatDir = dir;
         repeatTimer = 0.0f;
-        focused->Adjust(dir);          // 首次立即响应
+        menu.AdjustFocused(dir);        // 首次立即响应
         return;
     }
 
     repeatTimer += dt;
     while (repeatTimer >= RepeatDelay) {
         repeatTimer -= RepeatInterval;
-        focused->Adjust(dir);
+        menu.AdjustFocused(dir);
         if (RepeatInterval <= 0.0f) break;
     }
 }

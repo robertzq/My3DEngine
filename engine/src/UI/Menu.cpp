@@ -1,5 +1,7 @@
 #include "Engine/UI/Menu.h"
+#include "Engine/UI/UIPrimitives.h"
 #include <algorithm>
+#include <utility>
 
 std::vector<UIElement*> Menu::ValidFocusables() const {
     std::vector<UIElement*> v;
@@ -67,4 +69,43 @@ void Menu::Update(float dt) {
 void Menu::Render() {
     if (!open || !visible) return;
     UIContainer::Render();
+}
+
+void Menu::EmitAction(const std::string& elementId, const std::string& action, nlohmann::json value) {
+    actions.push_back(UIAction{id, elementId, action, std::move(value)});
+}
+
+std::vector<UIAction> Menu::ConsumeActions() {
+    std::vector<UIAction> out = std::move(actions);
+    actions.clear();
+    return out;
+}
+
+void Menu::Confirm() { EmitAction(std::string(), "confirm", nlohmann::json()); }
+void Menu::Cancel()  { EmitAction(std::string(), "cancel", nlohmann::json()); }
+
+void Menu::ActivateFocused() {
+    UIElement* f = focus;
+    if (!f) { Confirm(); return; }
+
+    if (Button* b = dynamic_cast<Button*>(f)) {
+        b->Activate();
+        EmitAction(b->id, b->action.empty() ? std::string("activate") : b->action, {});
+    } else if (Toggle* t = dynamic_cast<Toggle*>(f)) {
+        t->Activate();
+        EmitAction(t->id, "value_changed", t->value);
+    } else if (Slider* s = dynamic_cast<Slider*>(f)) {
+        (void)s;   // confirm 不改滑条值；用 left/right
+    } else {
+        f->Activate();
+    }
+}
+
+void Menu::AdjustFocused(int dir) {
+    UIElement* f = focus;
+    if (!f) return;
+    f->Adjust(dir);
+
+    if (Toggle* t = dynamic_cast<Toggle*>(f)) EmitAction(t->id, "value_changed", t->value);
+    else if (Slider* s = dynamic_cast<Slider*>(f)) EmitAction(s->id, "value_changed", s->value);
 }
