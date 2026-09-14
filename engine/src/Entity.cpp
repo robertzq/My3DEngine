@@ -1,6 +1,8 @@
 #include "Engine/Entity.h"
 
-Entity::Entity() = default;
+Entity::Entity() {
+    animator.Bind(&sprite);
+}
 Entity::~Entity() = default;
 
 SDL_Rect Entity::Bounds() const {

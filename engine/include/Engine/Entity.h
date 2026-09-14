@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include "Engine/Behavior.h"
+#include "Engine/Animator.h"
 
 struct Transform {
     float x = 0.0f;
@@ -34,6 +35,7 @@ public:
     Transform transform;
     Sprite sprite;
     Collider collider;
+    Animator animator;
 
     bool visible = true;
     bool alive = true;

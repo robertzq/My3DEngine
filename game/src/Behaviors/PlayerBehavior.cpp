@@ -15,13 +15,6 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
     rows = config.value("rows", 5);
     speed = config.value("speed", 180.0f);
 
-    rowIdle = config.value("row_idle", 0);
-    rowDown = config.value("row_down", 1);
-    rowUp = config.value("row_up", 2);
-    rowLeft = config.value("row_left", 3);
-    rowRight = config.value("row_right", 4);
-    currentRow = rowIdle;
-
     int texW = 0, texH = 0;
     if (self->sprite.texture) SDL_QueryTexture(self->sprite.texture, nullptr, nullptr, &texW, &texH);
     frameW = cols > 0 ? texW / cols : texW;
@@ -30,29 +23,14 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
     if (self->transform.w == 0) self->transform.w = frameW;
     if (self->transform.h == 0) self->transform.h = frameH;
 
-    self->sprite.src = {0, currentRow * frameH, frameW, frameH};
+    self->animator.SetSheet(frameW, frameH, cols);
+    if (config.contains("animations")) self->animator.LoadClips(config["animations"]);
+    self->sprite.src = {0, 0, frameW, frameH};
     self->collider.offset = {12, 28, self->transform.w - 24, self->transform.h - 28};
     self->collider.enabled = true;
 
     self->transform.x -= self->transform.w / 2.0f;
     self->transform.y -= self->transform.h / 2.0f;
-}
-
-void PlayerBehavior::SelectRow(int dx, int dy) {
-    if (dx < 0) currentRow = rowLeft;
-    else if (dx > 0) currentRow = rowRight;
-    else if (dy < 0) currentRow = rowUp;
-    else if (dy > 0) currentRow = rowDown;
-    else currentRow = rowIdle;
-}
-
-void PlayerBehavior::Animate(bool moving) {
-    int frame = 0;
-    if (moving && cols > 0) {
-        frame = (static_cast<int>(SDL_GetTicks()) / 120) % cols;
-    }
-    self->sprite.src.x = frame * frameW;
-    self->sprite.src.y = currentRow * frameH;
 }
 
 void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
@@ -79,8 +57,12 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
         if (maxY > 0 && self->transform.y > maxY) self->transform.y = maxY;
     }
 
-    SelectRow(dx, dy);
-    Animate(dx != 0 || dy != 0);
+    if (dx < 0) self->animator.Play("walk_left");
+    else if (dx > 0) self->animator.Play("walk_right");
+    else if (dy < 0) self->animator.Play("walk_up");
+    else if (dy > 0) self->animator.Play("walk_down");
+    else self->animator.Play("idle");
+    self->animator.Update(deltaTime);
 }
 
 static BehaviorRegistry::Proxy proxy_player("Player", []() {

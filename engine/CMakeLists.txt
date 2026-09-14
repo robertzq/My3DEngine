@@ -40,6 +40,7 @@ add_library(engine STATIC
     src/Entity.cpp
     src/Time.cpp
     src/Input.cpp
+    src/Animator.cpp
 )
 
 target_include_directories(engine

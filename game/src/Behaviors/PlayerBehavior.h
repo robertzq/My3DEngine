@@ -8,9 +8,6 @@ public:
     void Update(SceneContext& context, float deltaTime) override;
 
 private:
-    void SelectRow(int dx, int dy);
-    void Animate(bool moving);
-
     float speed = 180.0f;   // 像素/秒
     float velX = 0.0f;
     float velY = 0.0f;
@@ -19,11 +16,4 @@ private:
     int rows = 5;
     int frameW = 0;
     int frameH = 0;
-
-    int rowIdle = 0;
-    int rowDown = 1;
-    int rowUp = 2;
-    int rowLeft = 3;
-    int rowRight = 4;
-    int currentRow = 0;
 };
