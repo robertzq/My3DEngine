@@ -22,7 +22,7 @@ View        (游戏)   SceneView 子类                      ← 场景脚本，
   任何物体都是它，不再为每个物体造一个类。
 * **行为 = 逻辑**：`Behavior` 子类（`PlayerBehavior` / `GiftBoxBehavior` / `CollectibleBehavior`）
   按注册名挂到实体上，实现每帧逻辑；引擎用 `BehaviorRegistry` 创建。
-* 场景脚本（View）不碰地图解析、不写 `ChangeScene`、不管相机，只实现 `Render()`。
+* 场景脚本（View）不碰地图解析、不管场景切换和相机，只实现 `Render()`。
 * 场景跳转写在配置里：踩到图块触发器 → 引擎自动切到目标场景与出生点。
 * 动态转场：Controller/Behavior 调 `context.manager->RequestScene(...)` / `RequestTransition(...)`。
 
@@ -45,7 +45,7 @@ engine/
 │   ├── Entity.h          # 通用实体：Transform / Sprite / Collider
 │   ├── Behavior.h        # 行为基类（实体逻辑）
 │   ├── BehaviorRegistry.h# 行为自注册工厂
-│   ├── GameObject.h / Physics.h / ResourceManager.h / TextRenderer.h / Input.h
+│   ├── Physics.h / ResourceManager.h / TextRenderer.h / Input.h
 │   └── Config.h / Log.h / json.hpp
 └── src/                  # 引擎实现
 
@@ -123,7 +123,7 @@ game/                     # 演示游戏（只是引擎的使用者）
   → 相机自动跟随并 clamp 到地图边界
 ```
 
-游戏侧不再出现 `Map::LoadMap`、`ChangeScene(new XxxScene(...))`、硬编码坐标判断。
+游戏侧不再出现 `Map::LoadMap`、手写场景类切换、硬编码坐标判断。
 
 ---
 

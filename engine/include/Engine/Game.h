@@ -2,7 +2,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <iostream>
-#include "Engine/Scene.h"
 #include "Engine/Config.h"
 #include "Engine/SceneManager.h"
 
@@ -31,13 +30,9 @@ public:
     // 数据驱动的场景管理器（引擎侧负责地图加载、转场、相机）
     SceneManager& scenes() { return sceneManager; }
 
-    // 切换场景（旧式 Scene 基类，保留兼容）
-    void ChangeScene(Scene* newScene);
-
 private:
     bool isRunning;
     SDL_Window* window;
-    Scene* currentScene = nullptr;
     SceneManager sceneManager;
 
     static Game* s_instance;

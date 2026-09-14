@@ -28,7 +28,7 @@ public:
     ~Entity();
 
     std::string id;
-    std::string type;
+    std::string behaviorName;
     std::string tag;
 
     Transform transform;
