@@ -16,7 +16,7 @@ SceneManager::SceneManager() = default;
 SceneManager::~SceneManager() { ClearScene(); }
 
 bool SceneManager::LoadConfig(const std::string& configResourceId) {
-    std::string content = ResourceManager::GetTextContent(configResourceId);
+    std::string content = ResourceManager::GetText(configResourceId);
     if (content.empty()) {
         LOG_ERROR("SceneManager: 无法读取配置 -> " << configResourceId);
         return false;

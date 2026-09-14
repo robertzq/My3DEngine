@@ -8,7 +8,7 @@ bool TileMap::Load(const std::string& mapResourceId, const TileSet& tileSet) {
     this->tileSet = tileSet;
     tileSize = tileSet.tileSize > 0 ? tileSet.tileSize : EngineConfig::TILE_SIZE;
 
-    std::string content = ResourceManager::GetTextContent(mapResourceId);
+    std::string content = ResourceManager::GetText(mapResourceId);
     if (content.empty()) {
         LOG_ERROR("TileMap 加载失败，资源为空: " << mapResourceId);
         return false;

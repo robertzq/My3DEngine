@@ -412,12 +412,17 @@ ResourceManager::SetResourceTable(EMBEDDED_ASSETS);
 ResourceManager::Init();
 
 // 之后即可通过 ID 获取
-SDL_Texture* tex = ResourceManager::GetTexture("player.png");
-std::string  map = ResourceManager::GetTextContent("level1.map");
+SDL_Texture* tex = ResourceManager::GetTexture("player.png");  // 命中缓存不重复创建
+std::string  map = ResourceManager::GetText("level1.map");
 const EmbeddedResource* raw = ResourceManager::GetResource("player.png");
 
-ResourceManager::Clean();   // 引擎退出前释放所有缓存纹理
+bool ok = ResourceManager::Has("player.png");
+ResourceManager::Unload("player.png");  // 卸载单个纹理
+ResourceManager::Clear();               // 释放所有缓存纹理（须在 DestroyRenderer 之前）
 ```
+
+生命周期：资源表由游戏注入（通常 static inline），生命周期必须长于引擎；纹理按 ID 缓存，
+`Unload` 卸载单个、`Clear` 清空全部；`Game::clean()` 已在销毁渲染器前调用 `Clear()`。
 
 资源表类型为 `ResourceTable = std::map<std::string, EmbeddedResource>`，
 其中 `EmbeddedResource { const unsigned char* data; size_t size; }`。
