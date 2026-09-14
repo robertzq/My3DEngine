@@ -1,10 +1,9 @@
 #include "Engine/ResourceManager.h"
-#include "Engine/Game.h" // 需要用到 Game::renderer
+#include "Engine/Renderer.h"
 #include "Engine/Log.h"
 #include <SDL_image.h>
-#include <sstream>
 
-std::map<std::string, SDL_Texture*> ResourceManager::textureCache;
+std::map<std::string, Texture*> ResourceManager::textureCache;
 const ResourceTable* ResourceManager::resourceTable = nullptr;
 
 void ResourceManager::Init() {
@@ -20,7 +19,7 @@ bool ResourceManager::Has(const std::string& id) {
     return resourceTable && resourceTable->find(id) != resourceTable->end();
 }
 
-SDL_Texture* ResourceManager::GetTexture(const std::string& id) {
+Texture* ResourceManager::GetTexture(const std::string& id) {
     // 1. 先查缓存
     auto it = textureCache.find(id);
     if (it != textureCache.end()) {
@@ -28,14 +27,14 @@ SDL_Texture* ResourceManager::GetTexture(const std::string& id) {
     }
 
     // 2. 缓存没有，尝试加载
-    SDL_Texture* tex = LoadTextureFromMemory(id);
+    Texture* tex = LoadTextureFromMemory(id);
     if (tex) {
         textureCache[id] = tex;
     }
     return tex;
 }
 
-SDL_Texture* ResourceManager::LoadTextureFromMemory(const std::string& id) {
+Texture* ResourceManager::LoadTextureFromMemory(const std::string& id) {
     if (!resourceTable) {
         LOG_ERROR("资源表未注册，无法加载 -> " << id);
         return nullptr;
@@ -52,25 +51,22 @@ SDL_Texture* ResourceManager::LoadTextureFromMemory(const std::string& id) {
     const unsigned char* data = it->second.data;
     size_t size = it->second.size;
 
-    // 3. 创建 SDL_RWops (内存流)
+    // 3. 创建 SDL_RWops (内存流)，用 SDL_image 解码成 surface
     SDL_RWops* rw = SDL_RWFromConstMem(data, (int)size);
     if (!rw) {
         LOG_ERROR("SDL_RWFromConstMem 失败: " << SDL_GetError());
         return nullptr;
     }
 
-    // 4. 使用 IMG_Load_RW 从内存流加载图片
-    // 最后一个参数 1 表示加载完自动关闭 rw
-    SDL_Surface* surface = IMG_Load_RW(rw, 1);
+    SDL_Surface* surface = IMG_Load_RW(rw, 1);   // freesrc=1
     if (!surface) {
         LOG_ERROR("IMG_Load_RW 失败 (" << id << "): " << IMG_GetError());
         return nullptr;
     }
 
-    // 5. 转为 Texture
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(Game::renderer, surface);
+    // 4. 上传成 GL 纹理（所有权转交 ResourceManager）
+    Texture* tex = Renderer::CreateTextureFromSurface(surface);
     SDL_FreeSurface(surface);
-
     return tex;
 }
 
@@ -93,13 +89,13 @@ std::string ResourceManager::GetText(const std::string& id) {
 void ResourceManager::Unload(const std::string& id) {
     auto it = textureCache.find(id);
     if (it == textureCache.end()) return;
-    if (it->second) SDL_DestroyTexture(it->second);
+    Renderer::DestroyTexture(it->second);
     textureCache.erase(it);
 }
 
 void ResourceManager::Clear() {
     for (auto& pair : textureCache) {
-        SDL_DestroyTexture(pair.second);
+        Renderer::DestroyTexture(pair.second);
     }
     textureCache.clear();
     LOG_INFO("ResourceManager 已清理所有纹理缓存");
@@ -118,14 +114,13 @@ const EmbeddedResource* ResourceManager::GetResource(const std::string& id) {
     return &(it->second);
 }
 
-void ResourceManager::Draw(SDL_Texture* tex, SDL_Rect src, SDL_Rect dest, SDL_Renderer* ren, SDL_RendererFlip flip) {
+void ResourceManager::Draw(Texture* tex, SDL_Rect src, SDL_Rect dest, SDL_RendererFlip flip) {
     if (dest.w == 0 || dest.h == 0) {
         LOG_WARN("Destination width or height is 0!");
     }
-    SDL_RenderCopyEx(ren, tex, &src, &dest, 0.0, nullptr, flip);
+    Renderer::DrawSprite(tex, src, dest, flip);
 }
 
-void ResourceManager::DrawWhole(SDL_Texture* tex, SDL_Rect dest, SDL_Renderer* ren, SDL_RendererFlip flip) {
-    // 传 nullptr 给 src，SDL 会自动使用整张图
-    SDL_RenderCopyEx(ren, tex, nullptr, &dest, 0.0, nullptr, flip);
+void ResourceManager::DrawWhole(Texture* tex, SDL_Rect dest, SDL_RendererFlip flip) {
+    Renderer::DrawSprite(tex, {0, 0, 0, 0}, dest, flip);   // src 宽高<=0 => 整张纹理
 }

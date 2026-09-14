@@ -21,8 +21,7 @@ public:
     bool running() { return isRunning; }
     static Game* instance() { return s_instance; }
 
-    // 全局静态变量（渲染器、事件、摄像机）
-    static SDL_Renderer* renderer;
+    // 全局静态变量（事件、摄像机）
     static SDL_Event event;
     static SDL_Rect camera;
     static float cameraX_float;

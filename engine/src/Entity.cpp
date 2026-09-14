@@ -1,4 +1,5 @@
 #include "Engine/Entity.h"
+#include "Engine/Renderer.h"
 
 Entity::Entity() {
     animator.Bind(&sprite);
@@ -19,7 +20,7 @@ void Entity::SetPosition(float x, float y) {
     transform.y = y;
 }
 
-void Entity::Render(SDL_Renderer* renderer, const SDL_Rect& camera) const {
+void Entity::Render(const SDL_Rect& camera) const {
     if (!sprite.texture) return;
 
     SDL_Rect dest;
@@ -28,6 +29,6 @@ void Entity::Render(SDL_Renderer* renderer, const SDL_Rect& camera) const {
     dest.w = transform.w;
     dest.h = transform.h;
 
-    const SDL_Rect* src = (sprite.src.w > 0 && sprite.src.h > 0) ? &sprite.src : nullptr;
-    SDL_RenderCopyEx(renderer, sprite.texture, src, &dest, 0.0, nullptr, sprite.flip);
+    SDL_Rect src = (sprite.src.w > 0 && sprite.src.h > 0) ? sprite.src : SDL_Rect{0, 0, 0, 0};
+    Renderer::DrawSprite(sprite.texture, src, dest, sprite.flip);
 }

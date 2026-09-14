@@ -1,6 +1,6 @@
 # MyEngine
 
-一个轻量的 **C++17 + SDL2** 2D 游戏引擎库。核心只依赖 SDL2 / SDL2_image / SDL2_ttf，编译为静态库 `libengine.a`，游戏项目链接它即可复用。
+一个轻量的 **C++17 + SDL2** 2D 游戏引擎库。依赖 SDL2 / SDL2_image / SDL2_ttf / SDL2_mixer，渲染后端为 **OpenGL 3.3 Core**；编译为静态库 `libengine.a`，游戏项目链接它即可复用。
 
 引擎本身不包含任何游戏逻辑、美术资源或关卡数据 —— 你只需写自己的 `game/` 代码，`#include "Engine/..."` 即可。
 
@@ -147,7 +147,7 @@ while (game.running()) {
 game.clean();
 ```
 
-常用成员：`Game::renderer`（SDL 渲染器）、`Game::camera`（摄像机矩形）、`Game::event`（当前事件）、`Game::instance()`（单例）、`game.scenes()`（数据驱动的 `SceneManager`）。
+常用成员：`Game::camera`（摄像机矩形）、`Game::event`（当前事件）、`Game::instance()`（单例）、`game.scenes()`（数据驱动的 `SceneManager`）。SDL 负责 Window / Input / Audio / SDL_ttf 光栅化，实际绘制由 OpenGL `Renderer` 完成。
 
 `game.update()` 内部先推进帧时钟再更新场景；`SceneManager` 会把本帧 `DeltaTime` 传给每个 `Behavior::Update(ctx, dt)`：
 
@@ -362,7 +362,7 @@ tileSet.tiles[7] = { "door.png", false, false, "door" };   // 触发器
 
 TileMap map;
 map.Load("village.map", tileSet);
-map.DrawGround(Game::renderer, Game::camera);              // 只画背景层
+map.DrawGround(Game::camera);                              // 只画背景层
 
 const std::vector<SDL_Rect>& solid = map.Colliders();      // 所有阻挡格
 std::vector<SDL_Rect> doors = map.TriggerRects("door");    // 所有同名触发器
@@ -435,7 +435,7 @@ ResourceManager::Clear();               // 释放所有缓存纹理（须在 Des
 ```
 
 生命周期：资源表由游戏注入（通常 static inline），生命周期必须长于引擎；纹理按 ID 缓存，
-`Unload` 卸载单个、`Clear` 清空全部；`Game::clean()` 已在销毁渲染器前调用 `Clear()`。
+`Unload` 卸载单个、`Clear` 清空全部；`Game::clean()` 已在 `Renderer::Clean()`（GL context 销毁）之前调用 `Clear()`。
 
 资源表类型为 `ResourceTable = std::map<std::string, EmbeddedResource>`，
 其中 `EmbeddedResource { const unsigned char* data; size_t size; }`。
