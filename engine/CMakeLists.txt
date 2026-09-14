@@ -39,6 +39,7 @@ add_library(engine STATIC
     src/SceneManager.cpp
     src/Entity.cpp
     src/Time.cpp
+    src/Input.cpp
 )
 
 target_include_directories(engine

@@ -28,7 +28,7 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 - **资源管理**：`ResourceManager` 从内存资源表加载并缓存纹理 / 文本，支持资源表注入。
 - **物理碰撞**：AABB 碰撞检测，横版与俯视角两套、作用于 `Entity` 的移动解析。
 - **文字渲染**：`TextRenderer` 基于 SDL_ttf，带纹理缓存与抗锯齿。
-- **输入**：`Input` 键盘状态轮询，避免按键状态残留。
+- **输入**：`Input` 键盘状态轮询 + action 映射（`Down`/`Pressed`/`Released`/`Axis`），gameplay 不直接依赖 `SDL_SCANCODE`。
 - **日志**：`Log` 分级日志宏 `LOG_DEBUG/INFO/WARN/ERROR`。
 
 ---
@@ -53,7 +53,7 @@ engine/
 │   ├── BehaviorRegistry.h  #   行为自注册工厂
 │   ├── ResourceManager.h   #   资源加载 / 缓存 / 绘制
 │   ├── TextRenderer.h      #   文字渲染（SDL_ttf）
-│   ├── Input.h             #   键盘状态轮询
+│   ├── Input.h             #   键盘轮询 + action 映射
 │   ├── Physics.h           #   AABB 碰撞检测与移动解析
 │   ├── Config.h            #   引擎常量
 │   ├── Log.h               #   分级日志
@@ -379,9 +379,13 @@ ResourceManager::Clean();   // 引擎退出前释放所有缓存纹理
 ### 9. `Input` / `TextRenderer` / `Log`
 
 ```cpp
-// 输入：键盘状态轮询（scancode，不受输入法影响）
+// 输入：action 映射（每帧由 Game::update() 刷新；底层仍可用 Input::IsKeyDown(SDL_Scancode)）
 #include "Engine/Input.h"
-if (Input::IsKeyDown(SDL_SCANCODE_A)) { /* ... */ }
+if (Input::Down("MoveLeft"))  { /* 持续按住 */ }
+if (Input::Pressed("Jump"))   { /* 本帧刚按下 */ }
+if (Input::Released("Pause")) { /* 本帧刚松开 */ }
+int h = Input::Axis("Horizontal");   // -1 / 0 / 1
+// action 绑定来自 config.json 的 "input" 段（见下方最小示例）
 
 // 文字渲染
 #include "Engine/TextRenderer.h"
@@ -430,19 +434,22 @@ LOG_ERROR("加载失败: " << id);
 class PlayerBehavior : public Behavior {
 public:
     void Update(SceneContext& ctx, float dt) override {
-        float vx = 0.0f;
-        float vy = 0.0f;
-        if (Input::IsKeyDown(SDL_SCANCODE_A)) vx -= speed;
-        if (Input::IsKeyDown(SDL_SCANCODE_D)) vx += speed;
-        if (Input::IsKeyDown(SDL_SCANCODE_W)) vy -= speed;
-        if (Input::IsKeyDown(SDL_SCANCODE_S)) vy += speed;
+        int dx = 0, dy = 0;
+        if (Input::Down("MoveLeft"))  dx -= 1;
+        if (Input::Down("MoveRight")) dx += 1;
+        if (Input::Down("MoveUp"))    dy -= 1;
+        if (Input::Down("MoveDown"))  dy += 1;
 
-        if (vx != 0.0f || vy != 0.0f) {
-            Physics::MoveTopDown(*self, vx, vy, ctx.manager->Colliders());
+        float stepX = dx * speed * dt;   // speed 单位为像素/秒
+        float stepY = dy * speed * dt;
+        if (stepX != 0.0f || stepY != 0.0f) {
+            self->transform.x += stepX;
+            self->transform.y += stepY;
+            Physics::MoveTopDown(*self, stepX, stepY, ctx.manager->Colliders());
         }
     }
 
-    float speed = 4.0f;
+    float speed = 180.0f;
 };
 
 static BehaviorRegistry::Proxy proxy_player("Player", [] { return new PlayerBehavior(); });
@@ -507,6 +514,21 @@ int main() {
 ```jsonc
 {
   "initial": { "scene": "world", "spawn": "default" },
+  "input": {
+    "actions": {
+      "MoveLeft":  ["A", "LEFT"],
+      "MoveRight": ["D", "RIGHT"],
+      "MoveUp":    ["W", "UP"],
+      "MoveDown":  ["S", "DOWN"],
+      "Jump":      ["SPACE"],
+      "Interact":  ["E", "RETURN"],
+      "Pause":     ["ESCAPE"]
+    },
+    "axes": {
+      "Horizontal": ["MoveLeft", "MoveRight"],
+      "Vertical":   ["MoveUp", "MoveDown"]
+    }
+  },
   "tilesets": {
     "overworld": {
       "tile_size": 32,

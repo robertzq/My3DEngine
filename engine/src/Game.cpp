@@ -2,6 +2,7 @@
 #include "Engine/ResourceManager.h"
 #include "Engine/Log.h"
 #include "Engine/Time.h"
+#include "Engine/Input.h"
 
 // 静态成员初始化
 SDL_Renderer* Game::renderer = nullptr;
@@ -59,6 +60,7 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
+    Input::Update();
     Time::Tick();
     sceneManager.Update();
 }
