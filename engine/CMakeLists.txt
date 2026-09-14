@@ -61,6 +61,7 @@ add_library(engine STATIC
     src/UI/Menu.cpp
     src/UI/MenuInput.cpp
     src/UI/MenuStack.cpp
+    src/UI/UIManager.cpp
 )
 
 target_include_directories(engine
