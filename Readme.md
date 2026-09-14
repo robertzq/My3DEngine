@@ -19,7 +19,8 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 ## ✨ 特性
 
 - **数据驱动场景**：`SceneManager` 从 JSON 配置读取场景定义，负责地图加载、出生点、图块触发器与场景切换；`SceneView`（只渲染）与 `SceneController`（逻辑）分离，符合 MVC。
-- **组件化实体**：`Entity`（Transform / Sprite / Collider）+ `Behavior`（按注册名挂载的逻辑），所有物体共用一套实体模型，运行时 `Spawn` / `Destroy`。
+- **组件化实体**：`Entity`（Transform / Sprite / Collider / Animator）+ `Behavior`（按注册名挂载的逻辑），所有物体共用一套实体模型，运行时 `Spawn` / `Destroy`。
+- **帧动画**：`Entity` 持有 `Animator`，按 `frames / fps / loop` 数据驱动播放，支持 `Play` / `Stop` / 循环 / `FlipX` / `FlipY`，计时使用 `Time::DeltaTime()`。
 - **实体 / 视图 / 控制器自注册**：`BehaviorRegistry`、`SceneRegistry` 用 `Proxy` 按注册名创建，配置里用字符串引用。
 - **Y 轴深度排序**：地图分 `ground` / `overlay` 两层，`overlay` 图块与实体按脚底 Y 统一排序绘制。
 - **通用瓦片地图**：`TileSet` / `TileMap` 支持空格或紧凑格式 `.map`，图块的纹理、阻挡、overlay、触发器均由配置决定。
@@ -311,6 +312,27 @@ static BehaviorRegistry::Proxy proxy("Collectible", [] { return new CollectibleB
 
 `Entity` 字段：`id` / `behaviorName` / `tag` / `transform{x,y,w,h}` / `sprite{texture,src,flip}` / `collider{offset,enabled}` / `visible` / `alive` / `sortYOffset`。
 `Entity::Bounds()` 返回碰撞盒；`Entity::SortKey()` 返回 Y 轴排序键。
+
+`Animator` 由 `Entity` 持有并自动绑定 `sprite`。行为里按状态选动画，`Update(dt)` 推进；同名动画正在播放时不会重置进度：
+
+```cpp
+// 行为里：
+self->animator.SetSheet(frameW, frameH, cols);            // 单帧尺寸 + 每行列数
+self->animator.LoadClips(config.value("animations", json::object()));
+self->animator.Play(moving ? "walk_down" : "idle");
+self->animator.SetFlipX(facingLeft);
+self->animator.Update(dt);                                // 由 Time::DeltaTime() 驱动
+```
+
+```jsonc
+// 数据驱动：frames 是整张精灵表的全局帧号
+"params": {
+  "animations": {
+    "idle":      { "frames": [0], "fps": 1, "loop": true },
+    "walk_down": { "frames": [6, 7, 8, 9, 10, 11], "fps": 8.33, "loop": true }
+  }
+}
+```
 
 ### 6. `TileSet` / `TileMap` —— 通用瓦片地图
 
