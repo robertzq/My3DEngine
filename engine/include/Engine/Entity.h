@@ -28,7 +28,7 @@ public:
     ~Entity();
 
     std::string id;
-    std::string type;
+    std::string behaviorName;
     std::string tag;
 
     Transform transform;
@@ -37,10 +37,12 @@ public:
 
     bool visible = true;
     bool alive = true;
+    float sortYOffset = 0.0f;
 
     std::unique_ptr<Behavior> behavior;
 
     SDL_Rect Bounds() const;
+    float SortKey() const { return transform.y + transform.h + sortYOffset; }
     void SetPosition(float x, float y);
     void Render(SDL_Renderer* renderer, const SDL_Rect& camera) const;
 };

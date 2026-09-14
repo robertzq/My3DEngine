@@ -1,4 +1,5 @@
 #include "Engine/SceneManager.h"
+#include <algorithm>
 #include "Engine/BehaviorRegistry.h"
 #include "Engine/Config.h"
 #include "Engine/Game.h"
@@ -37,6 +38,7 @@ bool SceneManager::LoadConfig(const std::string& configResourceId) {
                     TileDef def;
                     def.texture = tile.value().value("texture", "");
                     def.solid = tile.value().value("solid", false);
+                    def.overlay = tile.value().value("overlay", false);
                     def.trigger = tile.value().value("trigger", "");
                     tileSet.tiles[id] = def;
                 }
@@ -124,7 +126,7 @@ Entity* SceneManager::Spawn(const std::string& behavior, const std::string& tag,
 Entity* SceneManager::SpawnDef(const EntityDef& def) {
     auto entity = std::make_unique<Entity>();
     entity->id = def.id;
-    entity->type = def.behavior;
+    entity->behaviorName = def.behavior;
     entity->tag = def.tag;
     entity->transform.x = static_cast<float>(def.x);
     entity->transform.y = static_cast<float>(def.y);
@@ -358,9 +360,40 @@ void SceneManager::Update() {
 }
 
 void SceneManager::DrawWorld() {
-    if (map) map->Draw(Game::renderer, Game::camera);
+    if (map) map->DrawGround(Game::renderer, Game::camera);
+
+    struct Item {
+        float key;
+        const TileSprite* tile;
+        Entity* entity;
+    };
+
+    std::vector<Item> items;
+    if (map) {
+        for (const auto& tile : map->Overlays()) {
+            items.push_back({static_cast<float>(tile.sortY), &tile, nullptr});
+        }
+    }
     for (auto& entity : entities) {
-        if (entity->alive && entity->visible) entity->Render(Game::renderer, Game::camera);
+        if (entity->alive && entity->visible) {
+            items.push_back({entity->SortKey(), nullptr, entity.get()});
+        }
+    }
+
+    std::stable_sort(items.begin(), items.end(),
+                     [](const Item& a, const Item& b) { return a.key < b.key; });
+
+    for (const auto& item : items) {
+        if (item.tile) {
+            SDL_Rect dest = item.tile->rect;
+            dest.x -= Game::camera.x;
+            dest.y -= Game::camera.y;
+            if (dest.x < -dest.w || dest.x > Game::camera.w ||
+                dest.y < -dest.h || dest.y > Game::camera.h) continue;
+            SDL_RenderCopy(Game::renderer, item.tile->texture, nullptr, &dest);
+        } else if (item.entity) {
+            item.entity->Render(Game::renderer, Game::camera);
+        }
     }
 }
 

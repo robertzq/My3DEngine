@@ -6,16 +6,24 @@
 #include <vector>
 #include "Engine/TileSet.h"
 
+struct TileSprite {
+    SDL_Rect rect;
+    SDL_Texture* texture = nullptr;
+    int sortY = 0;
+};
+
 class TileMap {
 public:
     bool Load(const std::string& mapResourceId, const TileSet& tileSet);
 
     void Draw(SDL_Renderer* renderer, const SDL_Rect& camera) const;
+    void DrawGround(SDL_Renderer* renderer, const SDL_Rect& camera) const;
 
     const std::vector<SDL_Rect>& Colliders() const { return colliders; }
     std::vector<SDL_Rect> TilesWithId(int id) const;
     const std::vector<std::pair<std::string, SDL_Rect>>& Triggers() const { return triggers; }
     std::vector<SDL_Rect> TriggerRects(const std::string& name) const;
+    const std::vector<TileSprite>& Overlays() const { return overlays; }
 
     void SetTile(int col, int row, int id);
 
@@ -28,6 +36,7 @@ public:
 
 private:
     void RebuildMetadata();
+    void DrawLayer(SDL_Renderer* renderer, const SDL_Rect& camera, bool overlayLayer) const;
 
     int tileSize = 32;
     int width = 0;
@@ -37,4 +46,5 @@ private:
     std::map<int, SDL_Texture*> textures;
     std::vector<SDL_Rect> colliders;
     std::vector<std::pair<std::string, SDL_Rect>> triggers;
+    std::vector<TileSprite> overlays;
 };
