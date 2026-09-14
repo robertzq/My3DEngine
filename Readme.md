@@ -46,6 +46,8 @@ engine/
 │   ├── Behavior.h        # 行为基类（实体逻辑）
 │   ├── BehaviorRegistry.h# 行为自注册工厂
 │   ├── Physics.h / ResourceManager.h / TextRenderer.h / Input.h
+│   ├── UI/UIElement.h / UIPrimitives.h / UILayout.h / UIContainer.h
+│   ├── UI/Menu.h / MenuInput.h / MenuStack.h / UIAction.h
 │   └── Config.h / Log.h / json.hpp
 └── src/                  # 引擎实现
 
@@ -162,6 +164,54 @@ Entity* player = context.manager->Player();                // tag == "player"
 
 `SceneManager` 每帧：更新所有行为 → 跑场景 Controller → 回收死亡实体 → 检查触发器 → 相机跟随。
 `SceneView` 只需 `context.manager->DrawWorld()` 再叠加自己的 HUD/过场。
+
+---
+
+## 🪟 UI / 菜单系统
+
+引擎自带一套轻量、组件化、**不含任何游戏逻辑**的 UI/菜单框架：
+
+```text
+UIElement          Label / Image / Panel / Button / Toggle / Slider / Spacer
+UILayout           VerticalLayout / HorizontalLayout（spacing/padding/align/stretch）
+UIContainer        拥有 children + layout，负责布局
+Menu               focus 导航（跳过 disabled/hidden/non-focusable，支持 wrap）
+MenuInput          用 Input 的语义动作驱动 Menu（不直接读 SDL_SCANCODE）
+UIAction           { menuId, elementId, action, value }：菜单只产 action，不执行逻辑
+MenuStack          Push/Pop/Replace/Clear，独占 Menu 所有权
+```
+
+最小用法：
+
+```cpp
+#include "Engine/UI/Menu.h"
+#include "Engine/UI/MenuStack.h"
+#include "Engine/UI/MenuInput.h"
+#include "Engine/UI/UIPrimitives.h"
+
+Menu menu;
+menu.id = "pause";
+menu.anchor = Anchor::Center;
+menu.rect = {0, 0, 340, 460};
+auto layout = std::make_unique<VerticalLayout>();
+menu.layout = std::move(layout);
+
+auto resume = std::make_unique<Button>();
+resume->id = "resume"; resume->text = "Resume"; resume->action = "resume";
+menu.Add(std::move(resume));
+menu.Open();
+
+// 每帧
+Input::SetContext(Input::InputContext::Menu);
+MenuInput::Handle(menu, dt);                 // UI 动作 -> focus/调整/激活
+for (const UIAction& a : menu.ConsumeActions()) controller->HandleUIAction(a);
+```
+
+菜单打开时切到 `Menu` 输入上下文，保证 Enter 不会同时触发 gameplay 的 Interact。
+输入动作 `UIUp/UIDown/UILeft/UIRight/UIConfirm/UICancel` 在 `config.json` 的 `input.actions` 配置。
+
+> 状态：菜单**核心框架（UIElement/Layout/Menu/Input/Action/MenuStack）已完成**；
+> 从 JSON 构建菜单（UIManager）、theme、binding、渲染管线接入与 pause 语义**尚未实现**。
 
 ---
 
