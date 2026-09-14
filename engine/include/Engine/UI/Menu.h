@@ -8,10 +8,13 @@
 class Menu : public UIContainer {
 public:
     bool open = false;
+    bool active = true;   // false = 被上层菜单覆盖：保留状态但不响应输入、不显示 focus
 
     void Open();     // 显示并自动聚焦第一个有效元素
     void Close();    // 隐藏并清除 focus
     bool IsOpen() const { return open; }
+    void SetActive(bool a);
+    bool IsActive() const { return active; }
 
     void FocusNext();
     void FocusPrev();

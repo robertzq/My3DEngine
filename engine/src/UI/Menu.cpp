@@ -55,6 +55,12 @@ void Menu::Open() {
     EnsureFocusValid();
 }
 
+void Menu::SetActive(bool a) {
+    active = a;
+    if (focus) focus->SetFocused(a);
+    if (a) EnsureFocusValid();
+}
+
 void Menu::Close() {
     open = false;
     visible = false;
@@ -63,7 +69,7 @@ void Menu::Close() {
 
 void Menu::Update(float dt) {
     UIContainer::Update(dt);   // children update + layout
-    if (open) EnsureFocusValid();
+    if (open && active) EnsureFocusValid();
 }
 
 void Menu::Render() {
