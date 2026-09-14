@@ -43,6 +43,11 @@ public:
     // 由 Menu 设置 focus 视觉状态（可交互组件覆写）；默认无视觉
     virtual void SetFocused(bool focused) {}
 
+    // ---- 交互契约（由输入 driver 调用；组件不含 key/SDL 依赖）----
+    virtual void Activate() {}                 // UIConfirm
+    virtual void Adjust(int dir) {}            // UILeft(-1) / UIRight(+1)
+    virtual bool RepeatableAdjust() const { return false; }  // 按住是否连发
+
     // standalone：anchor + offset + rect；layoutManaged：直接返回 resolved
     SDL_Rect ScreenRect() const;
 
