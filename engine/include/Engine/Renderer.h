@@ -14,6 +14,21 @@ struct SpriteDrawOptions {
     bool flipY = false;
 };
 
+// 最小动态 mesh 顶点：pos(像素) + uv(归一化) + 两个 shader 自定义附加量。
+// 仅服务 Page Curl 等最小需求；不做通用 geometry system。
+struct MeshVertex {
+    float x = 0.0f;
+    float y = 0.0f;
+    float u = 0.0f;
+    float v = 0.0f;
+    float e0 = 0.0f;   // PageCurl: front=shadow factor / curl=φ/π / flap=1
+    float e1 = 0.0f;   // PageCurl: 0=front 1=curl 2=flap
+};
+
+struct MeshDrawOptions {
+    SDL_Color tint = {255, 255, 255, 255};
+};
+
 // OpenGL 3.3 Core 2D 渲染后端。
 // 坐标语义保持和旧 SDL_Renderer 一致：origin 左上、+x 右、+y 下，单位为像素。
 // 相机偏移仍由调用方（CPU 端）应用；本类只负责像素坐标 -> NDC 的转换。
@@ -50,6 +65,11 @@ public:
     // 带 shader / effect 的版本（自动注入内置 uniform）
     static void DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
                            const SpriteDrawOptions& options);
+
+    // 最小动态 mesh：单纹理、pos+uv、一个动态 VBO/EBO/VAO（不每帧重建）
+    static void DrawMesh(Shader& shader, const MeshVertex* vertices, int vertexCount,
+                         const unsigned short* indices, int indexCount,
+                         const Texture* texture, const MeshDrawOptions& options = {});
 
     // 基础图元（等价旧 SDL_RenderFillRect / DrawRect / DrawLine / RenderClear）
     static void Clear(const SDL_Color& color);

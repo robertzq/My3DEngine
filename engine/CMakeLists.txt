@@ -51,6 +51,8 @@ add_library(engine STATIC
     src/Renderer.cpp
     src/RenderTarget.cpp
     src/PostProcess.cpp
+    src/PageCurl.cpp
+    src/MeshPageCurl.cpp
 )
 
 target_include_directories(engine
