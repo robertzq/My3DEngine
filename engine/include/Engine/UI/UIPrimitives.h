@@ -53,6 +53,7 @@ public:
     bool pressed = false;
     void Render() override;
     SDL_Point DesiredSize() const override;
+    void SetFocused(bool f) override { focused = f; }
 };
 
 // 开关：bool value。focusable（切换输入在后续 Step）
@@ -68,6 +69,7 @@ public:
     bool focused = false;
     void Render() override;
     SDL_Point DesiredSize() const override;
+    void SetFocused(bool f) override { focused = f; }
 };
 
 // 滑条：min/max/step/value。focusable（左右调节在后续 Step）
@@ -90,6 +92,7 @@ public:
     float Value() const { return value; }
     void Render() override;
     SDL_Point DesiredSize() const override;
+    void SetFocused(bool f) override { focused = f; }
 };
 
 // 占位（仅参与布局，不绘制）

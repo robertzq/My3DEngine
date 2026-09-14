@@ -40,6 +40,8 @@ public:
 
     virtual void Update(float dt) {}
     virtual void Render() = 0;
+    // 由 Menu 设置 focus 视觉状态（可交互组件覆写）；默认无视觉
+    virtual void SetFocused(bool focused) {}
 
     // standalone：anchor + offset + rect；layoutManaged：直接返回 resolved
     SDL_Rect ScreenRect() const;

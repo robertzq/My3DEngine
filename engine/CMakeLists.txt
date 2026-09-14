@@ -58,6 +58,7 @@ add_library(engine STATIC
     src/UI/UIPrimitives.cpp
     src/UI/UILayout.cpp
     src/UI/UIContainer.cpp
+    src/UI/Menu.cpp
 )
 
 target_include_directories(engine
