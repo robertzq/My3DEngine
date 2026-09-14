@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <string>
+#include <vector>
 #include <SDL.h>
 #include "Engine/Texture.h"
 
@@ -25,7 +26,11 @@ public:
     static void Init();
     static void SetResourceTable(const ResourceTable& table);
 
-    // 资源表中是否存在该 ID
+    // File 资源来源：资源表里找不到的 id，会回退到 basePath 下的同名文件读取。
+    // 服务所有资源类型（Texture / Text / Audio / Shader），不是 Audio 特例。
+    static void SetBasePath(const std::string& basePath);
+
+    // 资源表中或 File 来源是否存在该 ID
     static bool Has(const std::string& id);
 
     // 纹理：命中缓存直接返回；否则从资源表加载并缓存（返回 non-owning 语义，所有权在 ResourceManager）
@@ -48,4 +53,9 @@ private:
 
     static std::map<std::string, Texture*> textureCache;
     static const ResourceTable* resourceTable;
+
+    // File 来源：读入的文件字节按 id 缓存，生命周期由 ResourceManager 保证
+    static std::string basePath;
+    static std::map<std::string, std::vector<unsigned char>> fileBuffers;
+    static std::map<std::string, EmbeddedResource> fileResources;
 };
