@@ -14,6 +14,12 @@ bool previousDown[SDL_NUM_SCANCODES] = {};
 bool pressedThisFrame[SDL_NUM_SCANCODES] = {};
 bool releasedThisFrame[SDL_NUM_SCANCODES] = {};
 
+Input::InputContext inputContext = Input::InputContext::Gameplay;
+
+bool IsUIName(const std::string& action) {
+    return action.size() >= 2 && action[0] == 'U' && action[1] == 'I';
+}
+
 SDL_Scancode ParseKey(const std::string& name) {
     if (name.empty()) return SDL_SCANCODE_UNKNOWN;
 
@@ -91,9 +97,26 @@ void Update() {
     }
 }
 
-bool Down(const std::string& action) { return AnyBound(action, currentDown); }
-bool Pressed(const std::string& action) { return AnyBound(action, pressedThisFrame); }
-bool Released(const std::string& action) { return AnyBound(action, releasedThisFrame); }
+bool Down(const std::string& action) {
+    if (!ActionAllowed(action)) return false;
+    return AnyBound(action, currentDown);
+}
+bool Pressed(const std::string& action) {
+    if (!ActionAllowed(action)) return false;
+    return AnyBound(action, pressedThisFrame);
+}
+bool Released(const std::string& action) {
+    if (!ActionAllowed(action)) return false;
+    return AnyBound(action, releasedThisFrame);
+}
+
+void SetContext(InputContext context) { inputContext = context; }
+InputContext GetContext() { return inputContext; }
+bool IsUIAction(const std::string& action) { return IsUIName(action); }
+bool ActionAllowed(const std::string& action) {
+    bool ui = IsUIName(action);
+    return inputContext == InputContext::Menu ? ui : !ui;
+}
 
 bool AnyPressed() {
     for (int sc = 0; sc < SDL_NUM_SCANCODES; ++sc) {

@@ -10,7 +10,13 @@
       "Interact":  ["E", "RETURN"],
       "Jump":      ["SPACE"],
       "Confirm":   ["RETURN", "SPACE"],
-      "Pause":     ["ESCAPE"]
+      "Pause":     ["ESCAPE"],
+      "UIUp":      ["W", "UP"],
+      "UIDown":    ["S", "DOWN"],
+      "UILeft":    ["A", "LEFT"],
+      "UIRight":   ["D", "RIGHT"],
+      "UIConfirm": ["RETURN", "SPACE"],
+      "UICancel":  ["ESCAPE"]
     },
     "axes": {
       "Horizontal": ["MoveLeft", "MoveRight"],
