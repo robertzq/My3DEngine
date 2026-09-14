@@ -3,8 +3,6 @@
 #include <string>
 #include <vector>
 #include "Engine/SceneController.h"
-#include "GiftBox.h"
-#include "RPGPlayer.h"
 
 enum class VillageState {
     Playing,
@@ -28,9 +26,6 @@ public:
     void OnExit() override;
     void HandleEvent(SceneContext& context, SDL_Event& event) override;
     void Update(SceneContext& context) override;
-
-    RPGPlayer* player = nullptr;
-    std::vector<GiftBox*> gifts;
 
     VillageState state = VillageState::Playing;
     std::vector<std::string> logLines;

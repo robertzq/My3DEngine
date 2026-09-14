@@ -1,19 +1,27 @@
 #include "Controllers/VillageController.h"
 #include <cmath>
-#include "Engine/Game.h"
-#include "Engine/Input.h"
+#include "Behaviors/GiftBoxBehavior.h"
+#include "Behaviors/PlayerBehavior.h"
+#include "Engine/Config.h"
+#include "Engine/Entity.h"
 #include "Engine/Log.h"
 #include "Engine/Physics.h"
 #include "Engine/SceneManager.h"
 #include "Engine/SceneRegistry.h"
 #include "GameState.h"
 
+namespace {
+
+PlayerBehavior* PlayerBehaviorOf(SceneContext& context) {
+    Entity* player = context.manager->Player();
+    if (!player || !player->behavior) return nullptr;
+    return dynamic_cast<PlayerBehavior*>(player->behavior.get());
+}
+
+}
+
 void VillageController::OnEnter(SceneContext& context) {
     mapId = context.data ? context.data->id : std::string();
-
-    SDL_Point spawn = context.manager->SpawnPosition(context.params.value("spawn", "default"), context.params);
-    player = new RPGPlayer("rpgPlayer.png", Game::renderer, spawn.x, spawn.y, 4, 4);
-    context.manager->SetPlayer(player);
 
     state = VillageState::Playing;
     cloudFormed = false;
@@ -23,51 +31,37 @@ void VillageController::OnEnter(SceneContext& context) {
 
     if (mapId == "village" && g_gameState.bossDefeatedCount >= 3) {
         LOG_INFO("彩蛋：礼物盒已出现在广场中心");
-        gifts.push_back(new GiftBox(320, 288));
+        context.manager->Spawn("GiftBox", "gift", 320, 288);
     }
 }
 
-void VillageController::OnExit() {
-    delete player;
-    player = nullptr;
-    for (auto* gift : gifts) delete gift;
-    gifts.clear();
-}
+void VillageController::OnExit() {}
 
 void VillageController::HandleEvent(SceneContext& context, SDL_Event& event) {
     if (state != VillageState::Playing) return;
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN) {
-        for (auto* gift : gifts) {
-            if (gift->IsOpened() && !gift->IsBannerClosed()) {
-                gift->closeBanner();
-                player->SetInputEnabled(true);
+        for (Entity* entity : context.manager->Entities()) {
+            auto* gift = dynamic_cast<GiftBoxBehavior*>(entity->behavior.get());
+            if (gift && gift->IsOpened() && !gift->IsBannerClosed()) {
+                gift->CloseBanner();
+                if (PlayerBehavior* player = PlayerBehaviorOf(context)) player->SetInputEnabled(true);
             }
         }
     }
 }
 
 void VillageController::Update(SceneContext& context) {
+    Entity* player = context.manager->Player();
+    if (!player) return;
+
     if (state == VillageState::Playing) {
-        if (player->IsInputEnabled()) {
-            int dx = 0, dy = 0;
-            if (Input::IsKeyDown(SDL_SCANCODE_A)) dx -= 4;
-            if (Input::IsKeyDown(SDL_SCANCODE_D)) dx += 4;
-            if (Input::IsKeyDown(SDL_SCANCODE_W)) dy -= 4;
-            if (Input::IsKeyDown(SDL_SCANCODE_S)) dy += 4;
-            player->SetVelX(dx);
-            player->SetVelY(dy);
-        }
-        player->Update();
-
         if (context.map) {
-            Physics::ResolveRPGCollision(player, context.map->Colliders());
-
             for (const auto& zone : context.map->TilesWithId(17)) {
-                if (Physics::CheckCollision(player->GetBounds(), zone)) {
+                if (Physics::CheckCollision(player->Bounds(), zone)) {
                     json params;
                     params["return_scene"] = mapId;
-                    params["spawn_x"] = player->GetBounds().x;
-                    params["spawn_y"] = player->GetBounds().y + EngineConfig::TILE_SIZE;
+                    params["spawn_x"] = player->Bounds().x;
+                    params["spawn_y"] = player->Bounds().y + EngineConfig::TILE_SIZE;
                     context.manager->RequestTransition("boss", params);
                     return;
                 }
@@ -76,22 +70,23 @@ void VillageController::Update(SceneContext& context) {
 
         if (mapId == "village") {
             SDL_Rect lake = {716, 460, 200, 168};
-            if (Physics::CheckCollision(player->GetBounds(), lake)) {
+            if (Physics::CheckCollision(player->Bounds(), lake)) {
                 StartScan(context);
                 return;
             }
         }
 
-        for (auto* gift : gifts) {
-            if (!gift->IsOpened() && Physics::CheckCollision(player->GetBounds(), gift->GetBounds())) {
+        for (Entity* entity : context.manager->Entities()) {
+            auto* gift = dynamic_cast<GiftBoxBehavior*>(entity->behavior.get());
+            if (!gift || gift->IsOpened()) continue;
+            if (Physics::CheckCollision(player->Bounds(), entity->Bounds())) {
                 LOG_INFO("触碰礼物盒！生日快乐！");
                 gift->Open();
-                player->SetInputEnabled(false);
+                if (PlayerBehavior* behavior = PlayerBehaviorOf(context)) behavior->SetInputEnabled(false);
             }
         }
     } else if (state == VillageState::Scanning) {
-        Uint32 elapsedMs = SDL_GetTicks() - stateStartTime;
-        float elapsed = elapsedMs / 1000.0f;
+        float elapsed = (SDL_GetTicks() - stateStartTime) / 1000.0f;
 
         if (elapsed > 0.5f && scanStage == 0) {
             logLines.push_back("[SYSTEM] Proximity Alert Triggered.");
@@ -137,8 +132,10 @@ void VillageController::StartScan(SceneContext& context) {
     stateStartTime = SDL_GetTicks();
     logLines.clear();
     scanStage = 0;
-    player->SetVelX(0);
-    player->SetVelY(0);
+    if (PlayerBehavior* player = PlayerBehaviorOf(context)) {
+        player->SetVelocity(0, 0);
+        player->SetInputEnabled(false);
+    }
 }
 
 void VillageController::FinishScan(SceneContext& context) {

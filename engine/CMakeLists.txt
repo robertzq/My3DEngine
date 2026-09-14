@@ -38,6 +38,7 @@ add_library(engine STATIC
     src/Physics.cpp
     src/TileMap.cpp
     src/SceneManager.cpp
+    src/Entity.cpp
 )
 
 target_include_directories(engine

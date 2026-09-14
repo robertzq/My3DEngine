@@ -1,12 +1,15 @@
 #include "Views/VillageView.h"
 #include <cmath>
+#include "Engine/Entity.h"
 #include "Engine/Game.h"
 #include "Engine/ResourceManager.h"
+#include "Engine/SceneManager.h"
 #include "Engine/SceneRegistry.h"
 #include "Engine/TextRenderer.h"
+#include "Views/GiftBanner.h"
 
 void VillageView::OnEnter(SceneContext& context) {
-    controller = static_cast<VillageController*>(context.controller);
+    controller = dynamic_cast<VillageController*>(context.controller);
 }
 
 void VillageView::DrawText(const std::string& text, int x, int y, SDL_Color color) {
@@ -21,15 +24,18 @@ void VillageView::DrawCutscene(SceneContext& context) {
     SDL_Rect screen = {0, 0, 800, 600};
     SDL_RenderFillRect(Game::renderer, &screen);
 
-    SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
-    SDL_Rect pRect = controller->player->GetBounds();
-    SDL_Rect scanBox = {pRect.x - Game::camera.x - 20, pRect.y - Game::camera.y - 30, pRect.w + 40, pRect.h + 50};
-    SDL_RenderDrawRect(Game::renderer, &scanBox);
+    Entity* player = context.manager->Player();
+    if (player) {
+        SDL_Rect pRect = player->Bounds();
+        SDL_Rect scanBox = {pRect.x - Game::camera.x - 20, pRect.y - Game::camera.y - 30, pRect.w + 40, pRect.h + 50};
+        SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
+        SDL_RenderDrawRect(Game::renderer, &scanBox);
 
-    Uint32 ticks = SDL_GetTicks();
-    int scanOffset = static_cast<int>(sin(ticks / 200.0f) * (scanBox.h / 2));
-    int lineY = scanBox.y + scanBox.h / 2 + scanOffset;
-    SDL_RenderDrawLine(Game::renderer, scanBox.x, lineY, scanBox.x + scanBox.w, lineY);
+        Uint32 ticks = SDL_GetTicks();
+        int scanOffset = static_cast<int>(sin(ticks / 200.0f) * (scanBox.h / 2));
+        int lineY = scanBox.y + scanBox.h / 2 + scanOffset;
+        SDL_RenderDrawLine(Game::renderer, scanBox.x, lineY, scanBox.x + scanBox.w, lineY);
+    }
 
     int textY = 100;
     SDL_Color green = {0, 255, 0, 255};
@@ -84,12 +90,10 @@ void VillageView::DrawWordCloud(SceneContext& context) {
 }
 
 void VillageView::Render(SceneContext& context) {
-    if (context.map) context.map->Draw(Game::renderer, Game::camera);
+    context.manager->DrawWorld();
+    DrawGiftBanners(context);
+
     if (!controller) return;
-
-    if (controller->player) controller->player->Render();
-    for (auto* gift : controller->gifts) gift->Render();
-
     if (controller->state == VillageState::Scanning) DrawCutscene(context);
     else if (controller->state == VillageState::WordCloud) DrawWordCloud(context);
 }

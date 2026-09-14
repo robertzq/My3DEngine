@@ -1,4 +1,5 @@
 #pragma once
+#include <SDL.h>
 #include <map>
 #include <string>
 #include <vector>
@@ -11,6 +12,22 @@ struct SpawnPoint {
     int y = 0;
 };
 
+struct EntityDef {
+    std::string id;
+    std::string behavior;
+    std::string tag;
+    std::string texture;
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+    bool visible = true;
+    bool hasCollider = false;
+    SDL_Rect src{0, 0, 0, 0};
+    SDL_Rect collider{0, 0, 0, 0};
+    json params;
+};
+
 struct SceneTransition {
     std::string trigger;
     std::string target;
@@ -18,6 +35,43 @@ struct SceneTransition {
     bool automatic = true;
     json params;
 };
+
+namespace scene_data_detail {
+
+inline EntityDef ParseEntity(const json& j) {
+    EntityDef def;
+    def.id = j.value("id", "");
+    def.behavior = j.value("behavior", "");
+    def.tag = j.value("tag", "");
+    def.texture = j.value("texture", "");
+    def.visible = j.value("visible", true);
+    def.params = j.value("params", json::object());
+
+    if (j.contains("at") && j["at"].is_array() && j["at"].size() >= 2) {
+        def.x = j["at"][0].get<int>();
+        def.y = j["at"][1].get<int>();
+    }
+    if (j.contains("size") && j["size"].is_array() && j["size"].size() >= 2) {
+        def.w = j["size"][0].get<int>();
+        def.h = j["size"][1].get<int>();
+    }
+    if (j.contains("src") && j["src"].is_array() && j["src"].size() >= 4) {
+        def.src.x = j["src"][0].get<int>();
+        def.src.y = j["src"][1].get<int>();
+        def.src.w = j["src"][2].get<int>();
+        def.src.h = j["src"][3].get<int>();
+    }
+    if (j.contains("collider") && j["collider"].is_array() && j["collider"].size() >= 4) {
+        def.collider.x = j["collider"][0].get<int>();
+        def.collider.y = j["collider"][1].get<int>();
+        def.collider.w = j["collider"][2].get<int>();
+        def.collider.h = j["collider"][3].get<int>();
+        def.hasCollider = true;
+    }
+    return def;
+}
+
+}
 
 struct SceneData {
     std::string id;
@@ -27,6 +81,9 @@ struct SceneData {
     std::string tileset;
     std::map<std::string, SpawnPoint> spawns;
     std::vector<SceneTransition> transitions;
+    std::vector<EntityDef> entities;
+    bool hasPlayer = false;
+    EntityDef player;
     json params;
 
     static SceneData FromJson(const std::string& sceneId, const json& j) {
@@ -61,6 +118,17 @@ struct SceneData {
                 transition.automatic = t.value("automatic", true);
                 transition.params = t.value("params", json::object());
                 data.transitions.push_back(transition);
+            }
+        }
+
+        if (j.contains("player") && j["player"].is_object()) {
+            data.player = scene_data_detail::ParseEntity(j["player"]);
+            data.hasPlayer = true;
+        }
+
+        if (j.contains("entities") && j["entities"].is_array()) {
+            for (const auto& e : j["entities"]) {
+                if (e.is_object()) data.entities.push_back(scene_data_detail::ParseEntity(e));
             }
         }
 

@@ -18,15 +18,16 @@ endif()
 
 add_executable(MyEngine
     src/main.cpp
-    src/RPGPlayer.cpp
-    src/GiftBox.cpp
-    src/Collectible.cpp
+    src/Behaviors/PlayerBehavior.cpp
+    src/Behaviors/GiftBoxBehavior.cpp
+    src/Behaviors/CollectibleBehavior.cpp
     src/Controllers/VillageController.cpp
     src/Controllers/BattleController.cpp
     src/Controllers/PlayController.cpp
     src/Views/VillageView.cpp
     src/Views/BattleView.cpp
     src/Views/PlayView.cpp
+    src/Views/GiftBanner.cpp
 )
 
 target_include_directories(MyEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
