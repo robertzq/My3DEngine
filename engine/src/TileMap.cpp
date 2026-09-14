@@ -58,6 +58,7 @@ bool TileMap::Load(const std::string& mapResourceId, const TileSet& tileSet) {
 void TileMap::RebuildMetadata() {
     colliders.clear();
     triggers.clear();
+    overlays.clear();
 
     for (int row = 0; row < static_cast<int>(data.size()); ++row) {
         for (int col = 0; col < static_cast<int>(data[row].size()); ++col) {
@@ -68,14 +69,24 @@ void TileMap::RebuildMetadata() {
 
             std::string trigger = tileSet.TriggerOf(id);
             if (!trigger.empty()) triggers.emplace_back(trigger, rect);
+
+            if (tileSet.IsOverlay(id)) {
+                auto texIt = textures.find(id);
+                if (texIt != textures.end()) {
+                    overlays.push_back({rect, texIt->second, rect.y + rect.h});
+                }
+            }
         }
     }
 }
 
-void TileMap::Draw(SDL_Renderer* renderer, const SDL_Rect& camera) const {
+void TileMap::DrawLayer(SDL_Renderer* renderer, const SDL_Rect& camera, bool overlayLayer) const {
     for (int row = 0; row < static_cast<int>(data.size()); ++row) {
         for (int col = 0; col < static_cast<int>(data[row].size()); ++col) {
-            auto texIt = textures.find(data[row][col]);
+            int id = data[row][col];
+            if (tileSet.IsOverlay(id) != overlayLayer) continue;
+
+            auto texIt = textures.find(id);
             if (texIt == textures.end()) continue;
 
             SDL_Rect dest = {col * tileSize - camera.x, row * tileSize - camera.y, tileSize, tileSize};
@@ -84,6 +95,14 @@ void TileMap::Draw(SDL_Renderer* renderer, const SDL_Rect& camera) const {
             SDL_RenderCopy(renderer, texIt->second, nullptr, &dest);
         }
     }
+}
+
+void TileMap::Draw(SDL_Renderer* renderer, const SDL_Rect& camera) const {
+    DrawGround(renderer, camera);
+}
+
+void TileMap::DrawGround(SDL_Renderer* renderer, const SDL_Rect& camera) const {
+    DrawLayer(renderer, camera, false);
 }
 
 std::vector<SDL_Rect> TileMap::TilesWithId(int id) const {

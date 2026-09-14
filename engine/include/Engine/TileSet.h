@@ -5,6 +5,7 @@
 struct TileDef {
     std::string texture;
     bool solid = false;
+    bool overlay = false;
     std::string trigger;
 };
 
@@ -21,6 +22,11 @@ public:
     bool IsSolid(int id) const {
         const TileDef* def = Get(id);
         return def != nullptr && def->solid;
+    }
+
+    bool IsOverlay(int id) const {
+        const TileDef* def = Get(id);
+        return def != nullptr && def->overlay;
     }
 
     std::string TriggerOf(int id) const {

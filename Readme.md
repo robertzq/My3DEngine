@@ -10,6 +10,7 @@
 
 - **数据驱动场景**：`SceneManager` 从 JSON 配置读取场景定义，负责地图加载、出生点、图块触发器与场景切换；`SceneView`（只渲染）与 `SceneController`（逻辑）分离，符合 MVC。
 - **组件化实体**：`Entity`（Transform / Sprite / Collider）+ `Behavior`（按注册名挂载的逻辑），所有物体共用一套实体模型，运行时 `Spawn` / `Destroy`。
+- **Y 轴深度排序**：地图分 `ground` / `overlay` 两层，`overlay` 图块与实体按脚底 Y 统一排序绘制，实现“走到树/房子后面被遮挡”。
 - **通用瓦片地图**：`TileSet` / `TileMap` 支持空格或紧凑格式 `.map`，图块的纹理、阻挡、触发器均由配置决定，不含任何硬编码图块。
 - **场景管理**：基于 `Scene` 基类的状态管理，`SceneFactory` 支持场景自注册与工厂创建（兼容旧用法）。
 - **游戏循环**：`Game` 负责 SDL 初始化、事件分发、更新与渲染，单例访问 `Game::instance()`。
@@ -383,6 +384,24 @@ Entity* player = ctx.manager->Player();                        // tag == "player
 
 碰撞直接作用于 `Entity`：`Physics::MoveTopDown(entity, vx, vy, obstacles)`（俯视）、
 `Physics::MovePlatformer(entity, vx, vy, onGround, obstacles)`（横版）。
+
+### 10. Y 轴深度排序（遮挡）
+
+按物体“脚底”的世界 Y 排序：Y 小的先画（在后面），Y 大的后画（在前面）。
+
+* 地图在 tileset 里用 `"overlay": true` 标记参与排序的图块（树、房子、门、栅栏），
+  其余为 `ground` 背景；`TileMap::Overlays()` 暴露它们，排序键 = 图块底部 Y。
+* 实体排序键 = `Entity::SortKey()`（默认 `transform.y + transform.h`，可用 `sortYOffset` 微调）。
+* `SceneManager::DrawWorld()` 先画 ground，再把 overlay 图块与所有可见实体合并成
+  一个列表做稳定排序后绘制。
+
+```jsonc
+"3": { "texture": "tree.png", "solid": true, "overlay": true },
+"4": { "texture": "wall.png", "solid": true, "overlay": true },
+"5": { "texture": "roof.png", "solid": true, "overlay": true }
+```
+
+这样玩家走到树/房子的北面会被挡住，走到南面则盖住它们。
 
 ---
 
