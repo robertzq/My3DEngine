@@ -8,11 +8,11 @@
         "0": { "texture": "grass.png" },
         "1": { "texture": "dirt.png" },
         "2": { "texture": "water.png", "solid": true },
-        "3": { "texture": "tree.png", "solid": true },
-        "4": { "texture": "wall.png", "solid": true },
-        "5": { "texture": "roof.png", "solid": true },
-        "6": { "texture": "door.png" },
-        "7": { "texture": "fence.png", "solid": true },
+        "3": { "texture": "tree.png", "solid": true, "overlay": true },
+        "4": { "texture": "wall.png", "solid": true, "overlay": true },
+        "5": { "texture": "roof.png", "solid": true, "overlay": true },
+        "6": { "texture": "door.png", "overlay": true },
+        "7": { "texture": "fence.png", "solid": true, "overlay": true },
         "8": { "texture": "flower.png" },
         "9": { "texture": "bridge.png" }
       }
