@@ -56,6 +56,8 @@ add_library(engine STATIC
     src/RedBorder.cpp
     src/UI/UIElement.cpp
     src/UI/UIPrimitives.cpp
+    src/UI/UILayout.cpp
+    src/UI/UIContainer.cpp
 )
 
 target_include_directories(engine

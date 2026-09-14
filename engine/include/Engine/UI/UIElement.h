@@ -23,16 +23,25 @@ public:
     bool enabled = true;
     bool focusable = false;   // 仅可交互组件为 true（Step 3 才会用到）
 
-    SDL_Rect rect{0, 0, 0, 0};   // x,y 相对 anchor 点；w,h 为尺寸
+    SDL_Rect rect{0, 0, 0, 0};   // x,y 相对 anchor 点；w,h 为尺寸（standalone 用）
     Anchor anchor = Anchor::TopLeft;
     SDL_Point offset{0, 0};
     float opacity = 1.0f;
     SDL_Color tint{255, 255, 255, 255};
 
+    // ---- Layout 契约 ----
+    // 被 layout 管理时，layout 把最终屏幕矩形写进 resolved 并置 layoutManaged=true。
+    // 此时 anchor/offset/rect 不再参与定位（避免 anchor 与 layout 抢控制权）。
+    SDL_Rect resolved{0, 0, 0, 0};
+    bool layoutManaged = false;
+
+    // 自然尺寸（layout 用）。默认返回 rect.w/h，组件可覆写（如按文本测量）。
+    virtual SDL_Point DesiredSize() const { return {rect.w, rect.h}; }
+
     virtual void Update(float dt) {}
     virtual void Render() = 0;
 
-    // anchor + offset + rect 解析成屏幕像素矩形（依赖当前 Renderer 尺寸）
+    // standalone：anchor + offset + rect；layoutManaged：直接返回 resolved
     SDL_Rect ScreenRect() const;
 
 protected:

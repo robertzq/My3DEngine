@@ -2,6 +2,8 @@
 #include "Engine/Renderer.h"
 
 SDL_Rect UIElement::ScreenRect() const {
+    if (layoutManaged) return resolved;
+
     const int W = Renderer::Width();
     const int H = Renderer::Height();
     float fx = 0.0f, fy = 0.0f;   // 元素自身的锚点在屏幕上的比例位置
