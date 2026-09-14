@@ -1,130 +1,45 @@
 {
-  "game_title": "RBT Engine v2.0",
-  "initial": { "scene": "village", "spawn": "default" },
+  "game_title": "Memory Island",
+  "initial": { "scene": "island", "spawn": "default" },
   "tilesets": {
-    "overworld": {
+    "island": {
       "tile_size": 32,
       "tiles": {
-        "0":  { "texture": "grass.png" },
-        "1":  { "texture": "tree.png", "solid": true },
-        "2":  { "texture": "dirt.png" },
-        "3":  { "texture": "water.png", "solid": true },
-        "4":  { "texture": "bridge.png" },
-        "5":  { "texture": "wall.png", "solid": true },
-        "6":  { "texture": "roof.png", "solid": true },
-        "7":  { "texture": "door.png", "trigger": "to_house1" },
-        "8":  { "texture": "flower.png" },
-        "9":  { "texture": "fence.png", "solid": true },
-        "10": { "texture": "wood.png" },
-        "11": { "texture": "inWall.png", "solid": true },
-        "12": { "texture": "rug.png" },
-        "13": { "texture": "sofa.png", "solid": true },
-        "14": { "texture": "stage.png" },
-        "15": { "texture": "entrance.png", "trigger": "exit" },
-        "16": { "texture": "decor.png" },
-        "17": { "texture": "mic.png", "trigger": "boss" },
-        "18": { "texture": "door.png", "trigger": "to_house2" },
-        "19": { "texture": "door.png", "trigger": "to_house3" }
+        "0": { "texture": "grass.png" },
+        "1": { "texture": "dirt.png" },
+        "2": { "texture": "water.png", "solid": true },
+        "3": { "texture": "tree.png", "solid": true },
+        "4": { "texture": "wall.png", "solid": true },
+        "5": { "texture": "roof.png", "solid": true },
+        "6": { "texture": "door.png" },
+        "7": { "texture": "fence.png", "solid": true },
+        "8": { "texture": "flower.png" },
+        "9": { "texture": "bridge.png" }
       }
     }
   },
   "scenes": {
-    "level1": {
-      "view": "PlayView",
-      "controller": "PlayController",
-      "map": "level1.map",
-      "tileset": "overworld",
-      "spawns": { "default": [0, 0] },
+    "island": {
+      "view": "WorldView",
+      "map": "island.map",
+      "tileset": "island",
+      "spawns": { "default": [240, 300] },
       "player": {
         "behavior": "Player",
         "tag": "player",
-        "texture": "redPlayer.png",
-        "size": [50, 50],
-        "params": { "frames": 6, "rows": 1, "speed": 5, "platformer": true, "gravity": 0.5 }
+        "texture": "player_sheet.png",
+        "size": [48, 48],
+        "params": {
+          "cols": 6,
+          "rows": 5,
+          "row_idle": 0,
+          "row_down": 1,
+          "row_up": 2,
+          "row_left": 3,
+          "row_right": 4,
+          "speed": 3
+        }
       }
-    },
-    "village": {
-      "view": "VillageView",
-      "controller": "VillageController",
-      "map": "village.map",
-      "tileset": "overworld",
-      "spawns": {
-        "default": [100, 100],
-        "from_house1": [192, 230],
-        "from_house2": [736, 262],
-        "from_house3": [160, 656]
-      },
-      "player": {
-        "behavior": "Player",
-        "tag": "player",
-        "texture": "rpgPlayer.png",
-        "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
-      },
-      "transitions": [
-        { "trigger": "to_house1", "target": "house1", "spawn": "entrance" },
-        { "trigger": "to_house2", "target": "house2", "spawn": "entrance" },
-        { "trigger": "to_house3", "target": "house3", "spawn": "entrance" }
-      ]
-    },
-    "house1": {
-      "view": "VillageView",
-      "controller": "VillageController",
-      "map": "house1.map",
-      "tileset": "overworld",
-      "spawns": { "default": [128, 186], "entrance": [128, 186] },
-      "player": {
-        "behavior": "Player",
-        "tag": "player",
-        "texture": "rpgPlayer.png",
-        "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
-      },
-      "transitions": [
-        { "trigger": "exit", "target": "village", "spawn": "from_house1" },
-        { "trigger": "boss", "target": "battle", "automatic": false }
-      ]
-    },
-    "house2": {
-      "view": "VillageView",
-      "controller": "VillageController",
-      "map": "house2.map",
-      "tileset": "overworld",
-      "spawns": { "default": [128, 186], "entrance": [128, 186] },
-      "player": {
-        "behavior": "Player",
-        "tag": "player",
-        "texture": "rpgPlayer.png",
-        "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
-      },
-      "transitions": [
-        { "trigger": "exit", "target": "village", "spawn": "from_house2" },
-        { "trigger": "boss", "target": "battle", "automatic": false }
-      ]
-    },
-    "house3": {
-      "view": "VillageView",
-      "controller": "VillageController",
-      "map": "house3.map",
-      "tileset": "overworld",
-      "spawns": { "default": [128, 186], "entrance": [128, 186] },
-      "player": {
-        "behavior": "Player",
-        "tag": "player",
-        "texture": "rpgPlayer.png",
-        "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
-      },
-      "transitions": [
-        { "trigger": "exit", "target": "village", "spawn": "from_house3" },
-        { "trigger": "boss", "target": "battle", "automatic": false }
-      ]
-    },
-    "battle": {
-      "view": "BattleView",
-      "controller": "BattleController",
-      "params": { "return_scene": "village" }
     }
   }
 }

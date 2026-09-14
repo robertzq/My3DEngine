@@ -1,9 +1,6 @@
-# ============ 游戏（生日 RPG demo） ============
+# ============ 游戏（Memory Island demo） ============
 # 依赖引擎库 engine，只包含游戏自身的资源与逻辑。
 
-# --- 自动生成嵌入式资源 (EmbeddedAssets.h) ---
-# embed_assets.py 内部做了增量判断：资源未变化时跳过，
-# 避免每次构建都重写大文件导致全量重编译
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
     add_custom_target(embed_assets ALL
@@ -19,15 +16,7 @@ endif()
 add_executable(MyEngine
     src/main.cpp
     src/Behaviors/PlayerBehavior.cpp
-    src/Behaviors/GiftBoxBehavior.cpp
-    src/Behaviors/CollectibleBehavior.cpp
-    src/Controllers/VillageController.cpp
-    src/Controllers/BattleController.cpp
-    src/Controllers/PlayController.cpp
-    src/Views/VillageView.cpp
-    src/Views/BattleView.cpp
-    src/Views/PlayView.cpp
-    src/Views/GiftBanner.cpp
+    src/Views/WorldView.cpp
 )
 
 target_include_directories(MyEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -37,5 +26,4 @@ if(TARGET embed_assets)
     add_dependencies(MyEngine embed_assets)
 endif()
 
-# 输出到 build/ 根目录，保持 runGame.sh 路径不变
 set_target_properties(MyEngine PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

@@ -12,12 +12,10 @@ int main(int argc, char* argv[]) {
     ResourceManager::Init();
 
     Game game;
-    game.init("RBT Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    game.init("Memory Island", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
               EngineConfig::SCREEN_WIDTH, EngineConfig::SCREEN_HEIGHT, false);
 
-    if (!TextRenderer::Init("fusion-pixel-12px-monospaced-zh_hans.ttf", 24)) {
-        LOG_ERROR("字体初始化失败");
-    }
+    TextRenderer::Init("fusion-pixel-12px-monospaced-zh_hans.ttf", 24);
 
     if (!game.scenes().LoadConfig("config.json")) {
         LOG_ERROR("场景配置加载失败");

@@ -6,26 +6,24 @@ class PlayerBehavior : public Behavior {
 public:
     void OnSpawn(SceneContext& context) override;
     void Update(SceneContext& context, float deltaTime) override;
-    void HandleEvent(SceneContext& context, SDL_Event& event) override;
-
-    void SetInputEnabled(bool enabled) { inputEnabled = enabled; }
-    bool IsInputEnabled() const { return inputEnabled; }
-    void SetVelocity(float x, float y) { velX = x; velY = y; }
 
 private:
+    void SelectRow(int dx, int dy);
     void Animate(bool moving);
 
+    float speed = 3.0f;
     float velX = 0.0f;
     float velY = 0.0f;
-    float speed = 4.0f;
-    float gravity = 0.5f;
-    bool platformer = false;
-    bool onGround = false;
-    bool inputEnabled = true;
 
-    int frames = 4;
-    int rows = 4;
+    int cols = 6;
+    int rows = 5;
     int frameW = 0;
     int frameH = 0;
-    int direction = 0;
+
+    int rowIdle = 0;
+    int rowDown = 1;
+    int rowUp = 2;
+    int rowLeft = 3;
+    int rowRight = 4;
+    int currentRow = 0;
 };
