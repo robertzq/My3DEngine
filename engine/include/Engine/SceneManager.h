@@ -14,6 +14,18 @@
 class SceneView;
 class SceneController;
 
+// 场景与实体生命周期的 ownership 契约：
+//
+// * SceneManager 拥有当前场景的 map / view / controller（unique_ptr，随场景重建）。
+// * SceneManager 拥有 entities / pendingInsert（vector<unique_ptr<Entity>>）。
+// * Entity 拥有其 Behavior（unique_ptr）；Behavior::self 是非 owning 裸指针，指回所属 Entity。
+// * SceneContext 内的 game/manager/controller/map/data 均为非 owning，
+//   只在当前场景生命周期内有效。
+// * Spawn / FindById / FindByTag / Player 返回的 Entity* 不得跨场景切换或实体销毁后继续持有。
+// * Map() / Current() 的返回值不得跨 ClearScene / scene transition 持有。
+// * Sprite.texture 由 ResourceManager 管理，Entity 不拥有纹理。
+// * View / Controller / Behavior 不应长期缓存 Entity* 或 SceneContext&，
+//   除非能明确保证其生命周期（当前约定：与所在场景同生命周期）。
 class SceneManager {
 public:
     SceneManager();
@@ -43,7 +55,6 @@ public:
     void Render();
     void DrawWorld();
 
-    bool Active() const { return view != nullptr; }
     TileMap* Map() { return map.get(); }
     const SceneData* Current() const { return current; }
 
