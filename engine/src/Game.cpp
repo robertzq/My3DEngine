@@ -4,6 +4,7 @@
 #include "Engine/Renderer.h"
 #include "Engine/PostProcess.h"
 #include "Engine/MeshPageCurl.h"
+#include "Engine/RedBorder.h"
 #include "Engine/ShaderManager.h"
 #include "Engine/Log.h"
 #include "Engine/Time.h"
@@ -55,6 +56,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
         }
         PostProcess::Init();
         MeshPageCurl::Init();
+        RedBorder::Init();
 
         isRunning = true;
         Time::Reset();
@@ -81,6 +83,7 @@ void Game::update() {
     Input::Update();
     Time::Tick();
     sceneManager.Update();
+    RedBorder::Update(Time::DeltaTime());
 }
 
 void Game::render() {
@@ -103,6 +106,7 @@ void Game::render() {
         // 未来 UI：PostProcess::BindComposite() 后绘制
     }
     PostProcess::ApplyFinal();
+
 
     Renderer::EndFrame();
 }

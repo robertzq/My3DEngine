@@ -7,6 +7,7 @@
 #include "Engine/Input.h"
 #include "Engine/Log.h"
 #include "Engine/Physics.h"
+#include "Engine/RedBorder.h"
 #include "Engine/SceneManager.h"
 #include "Engine/SceneRegistry.h"
 #include "GameState.h"
@@ -23,6 +24,9 @@ PlayerBehavior* PlayerBehaviorOf(SceneContext& context) {
 
 void VillageController::OnEnter(SceneContext& context) {
     mapId = context.data ? context.data->id : std::string();
+
+    // house3：进入后屏幕边框红色危险抖动，3 秒后消失
+    if (mapId == "house3") RedBorder::Trigger(3.0f);
 
     state = VillageState::Playing;
     cloudFormed = false;

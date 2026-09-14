@@ -45,6 +45,8 @@ public:
 
     static void AddWorldEffect(const PostEffect& effect);
     static void AddFinalEffect(const PostEffect& effect);
+    // 取已注册的 final effect 指针（用于运行时改参数 / 开关），不存在返回 nullptr
+    static PostEffect* FinalEffect(const std::string& name);
     static void ClearEffects();
     static void ClearWorldEffects();
     static void ClearFinalEffects();

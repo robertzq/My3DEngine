@@ -199,6 +199,13 @@ void PostProcess::EndWorld() {
 void PostProcess::AddWorldEffect(const PostEffect& effect) { S().worldEffects.push_back(effect); }
 void PostProcess::AddFinalEffect(const PostEffect& effect) { S().finalEffects.push_back(effect); }
 
+PostEffect* PostProcess::FinalEffect(const std::string& name) {
+    for (auto& e : S().finalEffects) {
+        if (e.name == name) return &e;
+    }
+    return nullptr;
+}
+
 void PostProcess::ClearEffects() {
     S().worldEffects.clear();
     S().finalEffects.clear();
