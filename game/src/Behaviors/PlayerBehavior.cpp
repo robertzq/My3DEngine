@@ -13,7 +13,7 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
 
     cols = config.value("cols", 6);
     rows = config.value("rows", 5);
-    speed = config.value("speed", 3.0f);
+    speed = config.value("speed", 180.0f);
 
     rowIdle = config.value("row_idle", 0);
     rowDown = config.value("row_down", 1);
@@ -62,8 +62,9 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
     if (Input::IsKeyDown(SDL_SCANCODE_W)) dy -= 1;
     if (Input::IsKeyDown(SDL_SCANCODE_S)) dy += 1;
 
-    velX = dx * speed;
-    velY = dy * speed;
+    // speed 为像素/秒，乘以 dt 得到本帧位移（与帧率无关）
+    velX = dx * speed * deltaTime;
+    velY = dy * speed * deltaTime;
 
     self->transform.x += velX;
     self->transform.y += velY;

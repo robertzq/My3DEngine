@@ -11,7 +11,7 @@ private:
     void SelectRow(int dx, int dy);
     void Animate(bool moving);
 
-    float speed = 3.0f;
+    float speed = 180.0f;   // 像素/秒
     float velX = 0.0f;
     float velY = 0.0f;
 
