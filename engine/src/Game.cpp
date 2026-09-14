@@ -10,6 +10,7 @@
 #include "Engine/Time.h"
 #include "Engine/Input.h"
 #include "Engine/Audio.h"
+#include "Engine/UI/UIManager.h"
 
 // 静态成员初始化
 SDL_Event Game::event;
@@ -61,6 +62,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
         isRunning = true;
         Time::Reset();
         Audio::Init();
+        UIManager::Init();
     } else {
         isRunning = false;
     }
@@ -82,8 +84,13 @@ void Game::handleEvents() {
 void Game::update() {
     Input::Update();
     Time::Tick();
-    sceneManager.Update();
-    RedBorder::Update(Time::DeltaTime());
+    // UI 先于 gameplay 处理输入：菜单打开时会切换 Input 上下文，屏蔽 gameplay 动作
+    UIManager::HandleInput(Time::DeltaTime());
+    UIManager::DispatchActions();   // 注册了 handler 时消费 action（菜单可在此 Push/Pop）
+    // pause 语义由菜单定义决定，不等同于 UIManager::Active()
+    if (!UIManager::ShouldPauseGameplay()) sceneManager.Update();
+    UIManager::Update(Time::DeltaTime());
+    if (!UIManager::ShouldPauseAll()) RedBorder::Update(Time::DeltaTime());
 }
 
 void Game::render() {
@@ -103,14 +110,19 @@ void Game::render() {
         sceneManager.RenderTransition(w, h);
     } else {
         PostProcess::ApplyWorld();
-        // 未来 UI：PostProcess::BindComposite() 后绘制
     }
+
+    // UI 绘制进 composite（World -> WorldFX -> UI），FinalFX（如 RedBorder）覆盖 UI
+    PostProcess::BindComposite();
+    UIManager::Render();
+
     PostProcess::ApplyFinal();
 
     Renderer::EndFrame();
 }
 
 void Game::clean() {
+    UIManager::Clean();
     Audio::Clean();
     TextRenderer::Clean();        // 释放文字 GL 纹理（context 仍有效）
     ResourceManager::Clear();     // 释放纹理 GL 对象

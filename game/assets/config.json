@@ -23,6 +23,20 @@
       "Vertical":   ["MoveUp", "MoveDown"]
     }
   },
+  "menus": {
+    "start": {
+      "id": "start",
+      "anchor": "center",
+      "pause": "gameplay",
+      "rect": [0, 0, 420, 300],
+      "layout": { "type": "vertical", "spacing": 18, "padding": 28, "mainAlign": "center", "crossAlign": "center" },
+      "elements": [
+        { "type": "label",  "id": "title", "text": "生日快乐", "fontSize": 32 },
+        { "type": "button", "id": "start", "text": "开始游戏", "action": "start", "fontSize": 24 },
+        { "type": "button", "id": "quit",  "text": "退出",     "action": "quit",  "fontSize": 24 }
+      ]
+    }
+  },
   "tilesets": {
     "overworld": {
       "tile_size": 32,

@@ -13,6 +13,7 @@ namespace {
 
 nlohmann::json definitions = nlohmann::json::object();
 MenuStack stack;
+UIManager::UIActionHandler actionHandler;
 
 Anchor ParseAnchor(const std::string& s) {
     if (s == "top_left") return Anchor::TopLeft;
@@ -172,6 +173,11 @@ std::unique_ptr<Menu> BuildMenu(const std::string& menuId) {
     else
         menu->rect = {0, 0, 340, 460};
 
+    const std::string pause = d.value("pause", std::string("gameplay"));
+    if (pause == "none") menu->pauseMode = UIPauseMode::None;
+    else if (pause == "full") menu->pauseMode = UIPauseMode::Full;
+    else menu->pauseMode = UIPauseMode::Gameplay;
+
     if (d.contains("layout")) menu->layout = ParseLayout(d["layout"]);
 
     if (d.contains("elements") && d["elements"].is_array()) {
@@ -243,5 +249,17 @@ const std::vector<UIAction>& PendingActions() {
 }
 
 bool Active() { return !stack.Empty(); }
+
+void SetActionHandler(UIActionHandler handler) { actionHandler = std::move(handler); }
+void ClearActionHandler() { actionHandler = nullptr; }
+
+void DispatchActions() {
+    if (!actionHandler) return;   // 未注册则保留队列，供上层轮询 ConsumeActions
+    std::vector<UIAction> acts = ConsumeActions();
+    for (const UIAction& a : acts) actionHandler(a);
+}
+
+bool ShouldPauseGameplay() { return stack.ShouldPauseGameplay(); }
+bool ShouldPauseAll() { return stack.ShouldPauseAll(); }
 
 }

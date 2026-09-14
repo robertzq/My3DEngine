@@ -4,6 +4,9 @@
 #include "Engine/ResourceManager.h"
 #include "Engine/TextRenderer.h"
 #include "Engine/Audio.h"
+#include "Engine/json.hpp"
+#include "Engine/UI/UIManager.h"
+#include "Engine/UI/UIAction.h"
 #include "EmbeddedAssets.h"
 
 int main(int argc, char* argv[]) {
@@ -27,6 +30,20 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     game.scenes().Start();
+
+    // 数据驱动菜单：从同一 config.json 读取 menus 段
+    {
+        const std::string cfg = ResourceManager::GetText("config.json");
+        nlohmann::json j = nlohmann::json::parse(cfg, nullptr, false);
+        if (!j.is_discarded() && j.contains("menus")) {
+            UIManager::LoadMenus(j["menus"]);
+        }
+        UIManager::SetActionHandler([](const UIAction& a) {
+            if (a.action == "start")      UIManager::Pop();
+            else if (a.action == "quit")  Game::instance()->Quit();
+        });
+        UIManager::Push("start");   // 开始菜单（pause=gameplay：打开时暂停 gameplay）
+    }
 
     Audio::PlayMusic("forget_me_not.mp3");
 
