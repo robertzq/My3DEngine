@@ -38,6 +38,9 @@ typedef std::ptrdiff_t GLsizeiptr;
 #define GL_CLAMP_TO_EDGE       0x812F
 #define GL_ARRAY_BUFFER        0x8892
 #define GL_STATIC_DRAW         0x88E4
+#define GL_FRAMEBUFFER         0x8D40
+#define GL_COLOR_ATTACHMENT0   0x8CE0
+#define GL_FRAMEBUFFER_COMPLETE 0x8CD5
 #define GL_VERTEX_SHADER       0x8B31
 #define GL_FRAGMENT_SHADER     0x8B30
 #define GL_COMPILE_STATUS      0x8B81
@@ -87,6 +90,11 @@ typedef std::ptrdiff_t GLsizeiptr;
     X(void,   glBlendFunc,             (GLenum, GLenum)) \
     X(void,   glDrawArrays,            (GLenum, GLint, GLsizei)) \
     X(void,   glReadPixels,            (GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void*)) \
+    X(void,   glGenFramebuffers,       (GLsizei, GLuint*)) \
+    X(void,   glDeleteFramebuffers,    (GLsizei, const GLuint*)) \
+    X(void,   glBindFramebuffer,       (GLenum, GLuint)) \
+    X(void,   glFramebufferTexture2D,  (GLenum, GLenum, GLenum, GLuint, GLint)) \
+    X(GLenum, glCheckFramebufferStatus,(GLenum)) \
     X(GLenum, glGetError,              (void)) \
     X(const unsigned char*, glGetString, (GLenum))
 

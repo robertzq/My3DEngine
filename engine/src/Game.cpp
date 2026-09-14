@@ -2,6 +2,7 @@
 #include "Engine/ResourceManager.h"
 #include "Engine/TextRenderer.h"
 #include "Engine/Renderer.h"
+#include "Engine/PostProcess.h"
 #include "Engine/Log.h"
 #include "Engine/Time.h"
 #include "Engine/Input.h"
@@ -50,6 +51,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
             isRunning = false;
             return;
         }
+        PostProcess::Init();
 
         isRunning = true;
         Time::Reset();
@@ -82,7 +84,16 @@ void Game::render() {
     int w = 0, h = 0;
     SDL_GL_GetDrawableSize(window, &w, &h);
     Renderer::BeginFrame(w, h);
+
+    // World -> World FBO -> World PostFX -> composite -> (UI) -> Final PostFX -> screen
+    PostProcess::Resize(w, h);
+    PostProcess::BeginWorld();
     sceneManager.Render();
+    PostProcess::EndWorld();
+    PostProcess::ApplyWorld();
+    // 未来 UI：PostProcess::BindComposite() 后绘制
+    PostProcess::ApplyFinal();
+
     Renderer::EndFrame();
 }
 
@@ -90,6 +101,7 @@ void Game::clean() {
     Audio::Clean();
     TextRenderer::Clean();        // 释放文字 GL 纹理（context 仍有效）
     ResourceManager::Clear();     // 释放纹理 GL 对象
+    PostProcess::Clean();         // 释放 FBO / ping-pong / blit shader
     Renderer::Clean();            // 删除 shader / quad / GL context
     if (window) SDL_DestroyWindow(window);
     SDL_Quit();

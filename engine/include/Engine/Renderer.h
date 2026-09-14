@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include "Engine/Texture.h"
 
+class Shader;
+
 // OpenGL 3.3 Core 2D 渲染后端。
 // 坐标语义保持和旧 SDL_Renderer 一致：origin 左上、+x 右、+y 下，单位为像素。
 // 相机偏移仍由调用方（CPU 端）应用；本类只负责像素坐标 -> NDC 的转换。
@@ -22,6 +24,15 @@ public:
     static Texture* CreateTextureFromSurface(SDL_Surface* surface);
     static void DestroyTexture(Texture* texture);
 
+    // 渲染目标用的颜色纹理（LINEAR / CLAMP，无 mipmap），由调用方（RenderTarget）拥有
+    static Texture* CreateRenderTexture(int width, int height);
+
+    // 绑定默认 framebuffer，并把 viewport 设为窗口 drawable 尺寸
+    static void BindScreen();
+
+    // 用给定的 fullscreen shader 绘制整屏 quad（采样 input 到 texture unit 0）
+    static void DrawFullscreen(Shader& shader, const Texture* input);
+
     // src 宽/高 <= 0 时使用整张纹理；dst 为屏幕像素坐标（已含 camera offset）
     static void DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
                            SDL_RendererFlip flip, const SDL_Color& tint = {255, 255, 255, 255});
@@ -35,4 +46,9 @@ public:
     static bool Ready();
     static int Width();
     static int Height();
+
+    // 调试：开启后 CheckError 才会真正 poll glGetError（生产路径默认关闭）
+    static void SetDebug(bool enabled);
+    static bool Debug();
+    static bool CheckError(const char* context);
 };

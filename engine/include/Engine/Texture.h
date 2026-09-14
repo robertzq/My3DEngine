@@ -14,6 +14,7 @@ public:
 
 private:
     friend class Renderer;
+    friend class RenderTarget;
     unsigned int id_ = 0;
     int width_ = 0;
     int height_ = 0;
