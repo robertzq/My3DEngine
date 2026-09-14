@@ -13,8 +13,8 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
 
     frames = config.value("frames", 4);
     rows = config.value("rows", 4);
-    speed = config.value("speed", 4.0f);
-    gravity = config.value("gravity", 0.5f);
+    speed = config.value("speed", 240.0f);
+    gravity = config.value("gravity", 1800.0f);
     platformer = config.value("platformer", false);
 
     int texW = 0, texH = 0;
@@ -37,7 +37,7 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
 void PlayerBehavior::HandleEvent(SceneContext& context, SDL_Event& event) {
     if (!platformer || !inputEnabled) return;
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE && onGround) {
-        velY = -10.0f;
+        velY = -600.0f;
     }
 }
 
@@ -48,12 +48,16 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
         int dx = 0;
         if (Input::IsKeyDown(SDL_SCANCODE_A)) dx -= 1;
         if (Input::IsKeyDown(SDL_SCANCODE_D)) dx += 1;
-        velX = dx * speed;
-        velY += gravity;
+        velX = dx * speed;               // 像素/秒
+        velY += gravity * deltaTime;     // 像素/秒
 
-        self->transform.x += velX;
-        self->transform.y += velY;
-        if (context.map) Physics::MovePlatformer(*self, velX, velY, onGround, context.map->Colliders());
+        float stepX = velX * deltaTime;
+        float stepY = velY * deltaTime;
+        self->transform.x += stepX;
+        self->transform.y += stepY;
+        if (context.map) Physics::MovePlatformer(*self, stepX, stepY, onGround, context.map->Colliders());
+        // 落地 / 顶头后清零垂直速度（MovePlatformer 命中时会把 stepY 置 0）
+        if (onGround || (velY < 0.0f && stepY == 0.0f)) velY = 0.0f;
 
         if (context.map) {
             float maxX = context.map->WidthPx() - self->transform.w;
@@ -75,8 +79,8 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
     if (Input::IsKeyDown(SDL_SCANCODE_W)) dy -= 1;
     if (Input::IsKeyDown(SDL_SCANCODE_S)) dy += 1;
 
-    velX = dx * speed;
-    velY = dy * speed;
+    velX = dx * speed * deltaTime;
+    velY = dy * speed * deltaTime;
 
     self->transform.x += velX;
     self->transform.y += velY;

@@ -17,8 +17,8 @@ private:
 
     float velX = 0.0f;
     float velY = 0.0f;
-    float speed = 4.0f;
-    float gravity = 0.5f;
+    float speed = 240.0f;     // 像素/秒
+    float gravity = 1800.0f;  // 像素/秒²
     bool platformer = false;
     bool onGround = false;
     bool inputEnabled = true;

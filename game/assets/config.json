@@ -40,7 +40,7 @@
         "tag": "player",
         "texture": "redPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 6, "rows": 1, "speed": 5, "platformer": true, "gravity": 0.5 }
+        "params": { "frames": 6, "rows": 1, "speed": 300, "platformer": true, "gravity": 1800 }
       }
     },
     "village": {
@@ -59,7 +59,7 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
+        "params": { "frames": 4, "rows": 4, "speed": 240 }
       },
       "transitions": [
         { "trigger": "to_house1", "target": "house1", "spawn": "entrance" },
@@ -78,7 +78,7 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
+        "params": { "frames": 4, "rows": 4, "speed": 240 }
       },
       "transitions": [
         { "trigger": "exit", "target": "village", "spawn": "from_house1" },
@@ -96,7 +96,7 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
+        "params": { "frames": 4, "rows": 4, "speed": 240 }
       },
       "transitions": [
         { "trigger": "exit", "target": "village", "spawn": "from_house2" },
@@ -114,7 +114,7 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 4 }
+        "params": { "frames": 4, "rows": 4, "speed": 240 }
       },
       "transitions": [
         { "trigger": "exit", "target": "village", "spawn": "from_house3" },

@@ -9,6 +9,7 @@
 #include "Engine/SceneController.h"
 #include "Engine/SceneRegistry.h"
 #include "Engine/SceneView.h"
+#include "Engine/Time.h"
 
 SceneManager::SceneManager() = default;
 SceneManager::~SceneManager() { ClearScene(); }
@@ -271,7 +272,7 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
     if (controller) controller->OnEnter(context);
     if (view) view->OnEnter(context);
 
-    lastTick = SDL_GetTicks();
+    Time::Reset();
     LOG_INFO("SceneManager: 进入场景 " << sceneId << " (spawn=" << spawn << ")");
 }
 
@@ -332,10 +333,7 @@ void SceneManager::HandleEvent(SDL_Event& event) {
 void SceneManager::Update() {
     if (!view) return;
 
-    Uint32 now = SDL_GetTicks();
-    deltaTime = (now - lastTick) / 1000.0f;
-    if (deltaTime > 0.1f) deltaTime = 0.1f;
-    lastTick = now;
+    const float deltaTime = Time::DeltaTime();
 
     iterating = true;
     for (auto& entity : entities) {

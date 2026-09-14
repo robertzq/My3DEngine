@@ -1,6 +1,7 @@
 #include "Engine/Game.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/Log.h"
+#include "Engine/Time.h"
 
 // 静态成员初始化
 SDL_Renderer* Game::renderer = nullptr;
@@ -37,6 +38,8 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             isRunning = true;
         }
+
+        Time::Reset();
     } else {
         isRunning = false;
     }
@@ -56,6 +59,7 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
+    Time::Tick();
     sceneManager.Update();
 }
 
