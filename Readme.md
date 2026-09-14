@@ -31,6 +31,7 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 - **文字渲染**：`TextRenderer` 基于 SDL_ttf，带纹理缓存与抗锯齿。
 - **输入**：`Input` 键盘状态轮询 + action 映射（`Down`/`Pressed`/`Released`/`Axis`），gameplay 不直接依赖 `SDL_SCANCODE`。
 - **音频**：`Audio`（SDL_mixer）从内存资源表加载 music / sfx，music 与 SFX 分开控制音量，gameplay 只用资源 ID。
+- **UI / 菜单**：组件化 `UIElement`（Label/Image/Panel/Button/Toggle/Slider/Spacer）+ 布局（垂直/水平）+ `Menu` focus 导航 + `MenuStack` + `UIAction` 模型；引擎不含游戏逻辑，菜单只产 action 交上层消费。
 - **日志**：`Log` 分级日志宏 `LOG_DEBUG/INFO/WARN/ERROR`。
 
 ---
@@ -57,6 +58,14 @@ engine/
 │   ├── TextRenderer.h      #   文字渲染（SDL_ttf）
 │   ├── Input.h             #   键盘轮询 + action 映射
 │   ├── Physics.h           #   AABB 碰撞检测与移动解析
+│   ├── UI/UIElement.h      #   UI 基类 + 对齐锚点
+│   ├── UI/UIPrimitives.h   #   Label / Image / Panel / Button / Toggle / Slider / Spacer
+│   ├── UI/UILayout.h       #   垂直 / 水平布局
+│   ├── UI/UIContainer.h    #   容器（拥有 children + layout）
+│   ├── UI/Menu.h           #   菜单 + focus 导航
+│   ├── UI/MenuInput.h      #   用 Input 语义动作驱动菜单
+│   ├── UI/MenuStack.h      #   菜单栈（Push/Pop/Replace/Clear）
+│   ├── UI/UIAction.h       #   { menuId, elementId, action, value }
 │   ├── Config.h            #   引擎常量
 │   ├── Log.h               #   分级日志
 │   └── json.hpp            #   nlohmann/json（第三方）
@@ -643,6 +652,52 @@ int main() {
   }
 }
 ```
+
+---
+
+## 🪟 UI / 菜单系统
+
+引擎自带轻量、组件化、**不含任何游戏逻辑**的 UI/菜单框架：
+
+```text
+UIElement      Label / Image / Panel / Button / Toggle / Slider / Spacer
+UILayout       VerticalLayout / HorizontalLayout（spacing / padding / align / stretch）
+UIContainer    拥有 children + layout，负责布局
+Menu           focus 导航（跳过 disabled / hidden / non-focusable，支持 wrap）
+MenuInput      用 Input 的语义动作（UIUp/UIDown/UILeft/UIRight/UIConfirm/UICancel）驱动 Menu
+UIAction       { menuId, elementId, action, value }：菜单只产 action，不执行逻辑
+MenuStack      Push / Pop / Replace / Clear，独占 Menu 所有权
+```
+
+最小用法：
+
+```cpp
+#include "Engine/UI/Menu.h"
+#include "Engine/UI/MenuInput.h"
+#include "Engine/UI/UIPrimitives.h"
+
+Menu menu;
+menu.id = "pause";
+menu.anchor = Anchor::Center;
+menu.rect = {0, 0, 340, 460};
+auto layout = std::make_unique<VerticalLayout>();
+menu.layout = std::move(layout);
+
+auto resume = std::make_unique<Button>();
+resume->id = "resume"; resume->text = "Resume"; resume->action = "resume";
+menu.Add(std::move(resume));
+menu.Open();
+
+// 每帧
+Input::SetContext(Input::InputContext::Menu);   // 菜单打开时切上下文，避免 Enter 误触 gameplay
+MenuInput::Handle(menu, dt);
+for (const UIAction& a : menu.ConsumeActions()) controller->HandleUIAction(a);
+```
+
+`UIUp/UIDown/UILeft/UIRight/UIConfirm/UICancel` 在 `config.json` 的 `input.actions` 配置。
+
+> 状态：菜单**核心框架（UIElement / Layout / Menu / Input / Action / MenuStack）已完成**；
+> 从 JSON 构建菜单（UIManager）、theme、binding、渲染管线接入与 pause 语义**尚未实现**。
 
 ---
 
