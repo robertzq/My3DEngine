@@ -61,8 +61,9 @@ const char* MESH_FS =
     "uniform sampler2D u_texture; uniform vec4 u_tint;\n"
     "uniform float u_shadow,u_highlight,u_backsideDarken;\n"
     "void main(){\n"
+    "  vec2 buv=vec2(vUv.x,1.0-vUv.y);\n"
     "  if(vExtra.y<0.5){\n"                       // front
-    "    vec2 buv=vec2(vUv.x,1.0-vUv.y);\n" "    vec3 rgb=texture(u_texture,buv).rgb;\n"
+    "    vec3 rgb=texture(u_texture,buv).rgb;\n"
     "    float shadow=u_shadow*(1.0-clamp(vExtra.x,0.0,1.0));\n"   // e0: 0 near fold -> strong
     "    rgb*=(1.0-shadow);\n"
     "    F=vec4(rgb,1.0)*u_tint;\n"
