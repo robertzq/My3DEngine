@@ -29,7 +29,7 @@ void Button::Render() {
     SDL_Rect box = ScreenRect();
     SDL_Color base = normalColor;
     if (!enabled) base = disabledColor;
-    else if (pressed) base = pressedColor;
+    else if (pressed || activated) base = pressedColor;
     else if (focused) base = focusedColor;
 
     Renderer::DrawRect(box, Modulate(base));
@@ -62,6 +62,11 @@ void Slider::SetValue(float v) {
         v = minValue + std::round((v - minValue) / step) * step;
     }
     value = std::min(std::max(v, minValue), maxValue);
+}
+
+void Slider::Adjust(int dir) {
+    if (dir == 0) return;
+    SetValue(value + (dir > 0 ? step : -step));
 }
 
 void Slider::Render() {
