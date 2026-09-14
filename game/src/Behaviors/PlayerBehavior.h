@@ -12,8 +12,6 @@ public:
     void SetVelocity(float x, float y) { velX = x; velY = y; }
 
 private:
-    void Animate(bool moving);
-
     float velX = 0.0f;
     float velY = 0.0f;
     float speed = 240.0f;     // 像素/秒

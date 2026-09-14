@@ -56,7 +56,17 @@
         "tag": "player",
         "texture": "redPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 6, "rows": 1, "speed": 300, "platformer": true, "gravity": 1800 }
+        "params": {
+          "frames": 6,
+          "rows": 1,
+          "speed": 300,
+          "platformer": true,
+          "gravity": 1800,
+          "animations": {
+            "idle": { "frames": [0], "fps": 1, "loop": true },
+            "walk": { "frames": [0, 1, 2, 3, 4, 5], "fps": 10, "loop": true }
+          }
+        }
       }
     },
     "village": {
@@ -75,7 +85,21 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 240 }
+        "params": {
+          "frames": 4,
+          "rows": 4,
+          "speed": 240,
+          "animations": {
+            "idle_down":  { "frames": [0], "fps": 1, "loop": true },
+            "idle_left":  { "frames": [4], "fps": 1, "loop": true },
+            "idle_right": { "frames": [8], "fps": 1, "loop": true },
+            "idle_up":    { "frames": [12], "fps": 1, "loop": true },
+            "walk_down":  { "frames": [0, 1, 2, 3], "fps": 10, "loop": true },
+            "walk_left":  { "frames": [4, 5, 6, 7], "fps": 10, "loop": true },
+            "walk_right": { "frames": [8, 9, 10, 11], "fps": 10, "loop": true },
+            "walk_up":    { "frames": [12, 13, 14, 15], "fps": 10, "loop": true }
+          }
+        }
       },
       "transitions": [
         { "trigger": "to_house1", "target": "house1", "spawn": "entrance" },
@@ -94,7 +118,21 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 240 }
+        "params": {
+          "frames": 4,
+          "rows": 4,
+          "speed": 240,
+          "animations": {
+            "idle_down":  { "frames": [0], "fps": 1, "loop": true },
+            "idle_left":  { "frames": [4], "fps": 1, "loop": true },
+            "idle_right": { "frames": [8], "fps": 1, "loop": true },
+            "idle_up":    { "frames": [12], "fps": 1, "loop": true },
+            "walk_down":  { "frames": [0, 1, 2, 3], "fps": 10, "loop": true },
+            "walk_left":  { "frames": [4, 5, 6, 7], "fps": 10, "loop": true },
+            "walk_right": { "frames": [8, 9, 10, 11], "fps": 10, "loop": true },
+            "walk_up":    { "frames": [12, 13, 14, 15], "fps": 10, "loop": true }
+          }
+        }
       },
       "transitions": [
         { "trigger": "exit", "target": "village", "spawn": "from_house1" },
@@ -112,7 +150,21 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 240 }
+        "params": {
+          "frames": 4,
+          "rows": 4,
+          "speed": 240,
+          "animations": {
+            "idle_down":  { "frames": [0], "fps": 1, "loop": true },
+            "idle_left":  { "frames": [4], "fps": 1, "loop": true },
+            "idle_right": { "frames": [8], "fps": 1, "loop": true },
+            "idle_up":    { "frames": [12], "fps": 1, "loop": true },
+            "walk_down":  { "frames": [0, 1, 2, 3], "fps": 10, "loop": true },
+            "walk_left":  { "frames": [4, 5, 6, 7], "fps": 10, "loop": true },
+            "walk_right": { "frames": [8, 9, 10, 11], "fps": 10, "loop": true },
+            "walk_up":    { "frames": [12, 13, 14, 15], "fps": 10, "loop": true }
+          }
+        }
       },
       "transitions": [
         { "trigger": "exit", "target": "village", "spawn": "from_house2" },
@@ -130,7 +182,21 @@
         "tag": "player",
         "texture": "rpgPlayer.png",
         "size": [50, 50],
-        "params": { "frames": 4, "rows": 4, "speed": 240 }
+        "params": {
+          "frames": 4,
+          "rows": 4,
+          "speed": 240,
+          "animations": {
+            "idle_down":  { "frames": [0], "fps": 1, "loop": true },
+            "idle_left":  { "frames": [4], "fps": 1, "loop": true },
+            "idle_right": { "frames": [8], "fps": 1, "loop": true },
+            "idle_up":    { "frames": [12], "fps": 1, "loop": true },
+            "walk_down":  { "frames": [0, 1, 2, 3], "fps": 10, "loop": true },
+            "walk_left":  { "frames": [4, 5, 6, 7], "fps": 10, "loop": true },
+            "walk_right": { "frames": [8, 9, 10, 11], "fps": 10, "loop": true },
+            "walk_up":    { "frames": [12, 13, 14, 15], "fps": 10, "loop": true }
+          }
+        }
       },
       "transitions": [
         { "trigger": "exit", "target": "village", "spawn": "from_house3" },

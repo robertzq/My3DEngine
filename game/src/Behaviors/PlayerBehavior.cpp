@@ -22,6 +22,8 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
     frameW = frames > 0 ? texW / frames : texW;
     frameH = rows > 0 ? texH / rows : texH;
     self->sprite.src = {0, 0, frameW, frameH};
+    self->animator.SetSheet(frameW, frameH, frames);
+    if (config.contains("animations")) self->animator.LoadClips(config["animations"]);
 
     if (self->transform.w == 0) self->transform.w = config.value("width", 50);
     if (self->transform.h == 0) self->transform.h = config.value("height", 50);
@@ -60,10 +62,11 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
             if (maxX > 0 && self->transform.x > maxX) self->transform.x = maxX;
         }
 
-        if (velX < 0) self->sprite.flip = SDL_FLIP_HORIZONTAL;
-        else if (velX > 0) self->sprite.flip = SDL_FLIP_NONE;
+        if (velX < 0) self->animator.SetFlipX(true);
+        else if (velX > 0) self->animator.SetFlipX(false);
 
-        Animate(dx != 0);
+        self->animator.Play(dx != 0 ? "walk" : "idle");
+        self->animator.Update(deltaTime);
         return;
     }
 
@@ -93,18 +96,12 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
     else if (velY < 0) direction = 3;
     if (velX > 0) direction = 2;
     else if (velX < 0) direction = 1;
-    self->sprite.src.y = direction * frameH;
 
-    Animate(dx != 0 || dy != 0);
-}
-
-void PlayerBehavior::Animate(bool moving) {
-    if (moving) {
-        int frame = (static_cast<int>(SDL_GetTicks()) / 100) % frames;
-        self->sprite.src.x = frameW * frame;
-    } else {
-        self->sprite.src.x = 0;
-    }
+    static const char* kWalk[4] = {"walk_down", "walk_left", "walk_right", "walk_up"};
+    static const char* kIdle[4] = {"idle_down", "idle_left", "idle_right", "idle_up"};
+    const bool moving = (dx != 0 || dy != 0);
+    self->animator.Play(moving ? kWalk[direction] : kIdle[direction]);
+    self->animator.Update(deltaTime);
 }
 
 static BehaviorRegistry::Proxy proxy_player("Player", []() {
