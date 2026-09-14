@@ -24,6 +24,7 @@ typedef std::ptrdiff_t GLsizeiptr;
 #define GL_ONE_MINUS_SRC_ALPHA 0x0303
 #define GL_TEXTURE_2D          0x0DE1
 #define GL_TEXTURE0            0x84C0
+#define GL_TEXTURE1            0x84C1
 #define GL_RGBA                0x1908
 #define GL_RGBA8               0x8058
 #define GL_UNSIGNED_BYTE       0x1401

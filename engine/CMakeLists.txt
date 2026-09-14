@@ -51,6 +51,7 @@ add_library(engine STATIC
     src/Renderer.cpp
     src/RenderTarget.cpp
     src/PostProcess.cpp
+    src/PageCurl.cpp
 )
 
 target_include_directories(engine
