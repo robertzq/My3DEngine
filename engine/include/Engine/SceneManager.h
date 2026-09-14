@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "Engine/Entity.h"
+#include "Engine/MeshPageCurl.h"
 #include "Engine/SceneContext.h"
 #include "Engine/SceneData.h"
 #include "Engine/TileMap.h"
@@ -13,6 +14,7 @@
 
 class SceneView;
 class SceneController;
+class RenderTarget;
 
 // 场景与实体生命周期的 ownership 契约：
 //
@@ -62,11 +64,16 @@ public:
     bool CheckTransitions();
     void FollowPlayer();
 
+    // 转场（Page Curl）：old scene 快照 -> 加载 new scene -> 翻页盖在新场景上
+    bool InTransition() const { return transitionActive; }
+    void RenderTransition(int width, int height);
+
 private:
     void LoadScene(const std::string& sceneId, const std::string& spawn, const json& runtimeParams);
     void ClearScene();
     void FlushPending();
     void RemoveDead();
+    void CaptureSceneTo(RenderTarget& target);
 
     std::map<std::string, TileSet> tilesets;
     std::map<std::string, SceneData> scenes;
@@ -87,4 +94,13 @@ private:
     std::string pendingScene;
     std::string pendingSpawn = "default";
     json pendingParams;
+    std::string pendingEffect;
+    json pendingEffectParams;
+
+    // Page Curl 转场状态（old scene 快照纹理 + 进度）
+    std::unique_ptr<RenderTarget> transitionOldRT;
+    bool transitionActive = false;
+    float transitionElapsed = 0.0f;
+    float transitionDuration = 0.9f;
+    MeshPageCurlParams transitionParams;
 };

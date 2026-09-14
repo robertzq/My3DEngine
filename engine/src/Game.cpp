@@ -93,7 +93,8 @@ void Game::render() {
     PostProcess::EndWorld();
     PostProcess::ApplyWorld();
     // 未来 UI：PostProcess::BindComposite() 后绘制
-    PostProcess::ApplyFinal();
+    if (sceneManager.InTransition()) sceneManager.RenderTransition(w, h);
+    else PostProcess::ApplyFinal();
 
     Renderer::EndFrame();
 }
