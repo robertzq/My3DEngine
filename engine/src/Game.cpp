@@ -3,6 +3,7 @@
 #include "Engine/TextRenderer.h"
 #include "Engine/Renderer.h"
 #include "Engine/PostProcess.h"
+#include "Engine/MeshPageCurl.h"
 #include "Engine/ShaderManager.h"
 #include "Engine/Log.h"
 #include "Engine/Time.h"
@@ -53,6 +54,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
             return;
         }
         PostProcess::Init();
+        MeshPageCurl::Init();
 
         isRunning = true;
         Time::Reset();
@@ -91,8 +93,15 @@ void Game::render() {
     PostProcess::BeginWorld();
     sceneManager.Render();
     PostProcess::EndWorld();
-    PostProcess::ApplyWorld();
-    // 未来 UI：PostProcess::BindComposite() 后绘制
+
+    if (sceneManager.InTransition()) {
+        // 转场：old snapshot + new world -> PageCurl -> composite（替代 world FX 阶段）
+        PostProcess::BindComposite();
+        sceneManager.RenderTransition(w, h);
+    } else {
+        PostProcess::ApplyWorld();
+        // 未来 UI：PostProcess::BindComposite() 后绘制
+    }
     PostProcess::ApplyFinal();
 
     Renderer::EndFrame();

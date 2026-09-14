@@ -31,8 +31,8 @@ const char* BG_FS =
     "  vec2 C=bez(uP0,uP1,uP2,uP3,bt); vec2 T=normalize(bezT(uP0,uP1,uP2,uP3,bt)+vec2(1e-6));\n"
     "  vec2 N=normalize(vec2(-T.y,T.x)); if(dot(N,u_dir)<0.0) N=-N;\n"
     "  float d=dot(q-C,N);\n"
-    "  vec3 col=texture(u_inputTexture,suv).rgb;\n"
-    "  float sh=exp(-max(-d,0.0)/(u_radius*2.5))*u_shadow;\n"
+    "  vec3 col=texture(u_inputTexture,vUv).rgb;\n"
+    "  float sh=(d<0.0)?exp(d/(u_radius*2.5))*u_shadow:0.0;\n"
     "  col*=(1.0-sh);\n"
     "  F=vec4(col,1.0);\n"
     "}\n";
@@ -61,15 +61,16 @@ const char* MESH_FS =
     "uniform sampler2D u_texture; uniform vec4 u_tint;\n"
     "uniform float u_shadow,u_highlight,u_backsideDarken;\n"
     "void main(){\n"
+    "  vec2 buv=vec2(vUv.x,1.0-vUv.y);\n"
     "  if(vExtra.y<0.5){\n"                       // front
-    "    vec3 rgb=texture(u_texture,vUv).rgb;\n"
+    "    vec3 rgb=texture(u_texture,buv).rgb;\n"
     "    float shadow=u_shadow*(1.0-clamp(vExtra.x,0.0,1.0));\n"   // e0: 0 near fold -> strong
     "    rgb*=(1.0-shadow);\n"
     "    F=vec4(rgb,1.0)*u_tint;\n"
     "  } else {\n"
     "    float curl=(vExtra.y<1.5)?clamp(vExtra.x,0.0,1.0):1.0;\n"
     "    float back=smoothstep(0.5,0.9,curl);\n"
-    "    vec2 uv=mix(vUv, vec2(1.0-vUv.x, vUv.y), back);\n"       // 页内镜像 backside
+    "    vec2 uv=mix(buv, vec2(1.0-buv.x, buv.y), back);\n"       // 页内镜像 backside
     "    vec3 rgb=texture(u_texture,uv).rgb;\n"
     "    rgb=mix(rgb, rgb*vec3(0.80,0.85,1.0)*(1.0-u_backsideDarken), back);\n"
     "    float hl=exp(-pow((curl-0.85)/0.13,2.0))*u_highlight;\n"
@@ -164,11 +165,8 @@ void MeshPageCurl::Render(const Texture* pageTexture, const Texture* backTexture
     const float perpX = -dy, perpY = dx;
     const float diag = std::sqrt(W * W + H * H);
 
-    float sp;
-    if (params.progress < 0.2f) sp = 0.15f * (params.progress / 0.2f) * (params.progress / 0.2f);
-    else if (params.progress < 0.8f) sp = 0.15f + 0.70f * ((params.progress - 0.2f) / 0.6f);
-    else sp = 0.85f + 0.15f * ((params.progress - 0.8f) / 0.2f);
-    sp = std::min(std::max(sp, 0.0f), 1.0f);
+    // 折痕推进：随 progress 连续推进（不做长时间“抬角停顿”），时间曲线交给 easing
+    float sp = std::min(std::max(params.progress, 0.0f), 1.0f);
 
     Vec2 base{params.originX * W + dx * sp * diag, params.originY * H + dy * sp * diag};
     if (params.dragX != params.originX || params.dragY != params.originY) {
@@ -260,7 +258,15 @@ void MeshPageCurl::Render(const Texture* pageTexture, const Texture* backTexture
 
     // background (new scene) + fold shadow; no depth write
     glClear(GL_DEPTH_BUFFER_BIT);
+    // 显式设置绘制状态，避免游戏 pipeline 残留 state 影响（不依赖之前 pass）
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+
     Shader* bg = ShaderManager::Get("page_curl_bg");
     if (bg && backTexture) {
         bg->Use();
@@ -282,10 +288,14 @@ void MeshPageCurl::Render(const Texture* pageTexture, const Texture* backTexture
     sh->SetFloat("u_highlight", params.highlightStrength);
     sh->SetFloat("u_backsideDarken", params.backsideDarken);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glDepthMask(GL_TRUE);
-    Renderer::DrawMesh(*sh, verts.data(), (int)verts.size(), indices.data(), (int)indices.size(), pageTexture);
+    // 显式设置绘制状态，避免游戏 pipeline 残留 state 影响（不依赖之前 pass）
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+    Renderer::DrawMesh(*sh, verts.data(), (int)verts.size(), indices.data(), (int)indices.size(), pageTexture);
     Renderer::CheckError("page curl mesh");
 }

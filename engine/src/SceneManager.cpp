@@ -6,6 +6,8 @@
 #include "Engine/Input.h"
 #include "Engine/Log.h"
 #include "Engine/Physics.h"
+#include "Engine/PostProcess.h"
+#include "Engine/RenderTarget.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/Renderer.h"
 #include "Engine/SceneController.h"
@@ -14,6 +16,8 @@
 #include "Engine/ShaderManager.h"
 #include "Engine/SpriteEffect.h"
 #include "Engine/Time.h"
+#include "Engine/GL.h"
+#include <cmath>
 
 SceneManager::SceneManager() = default;
 SceneManager::~SceneManager() { ClearScene(); }
@@ -139,6 +143,8 @@ void SceneManager::RequestTransition(const std::string& trigger, const json& run
             if (runtimeParams.is_object()) {
                 for (auto it = runtimeParams.begin(); it != runtimeParams.end(); ++it) params[it.key()] = it.value();
             }
+            pendingEffect = transition.transitionEffect;
+            pendingEffectParams = transition.transitionParams;
             RequestScene(transition.target, transition.spawn, params);
             return;
         }
@@ -359,6 +365,8 @@ bool SceneManager::CheckTransitions() {
         if (!transition.automatic) continue;
         for (const auto& rect : map->TriggerRects(transition.trigger)) {
             if (Physics::CheckCollision(bounds, rect)) {
+                pendingEffect = transition.transitionEffect;
+                pendingEffectParams = transition.transitionParams;
                 RequestScene(transition.target, transition.spawn, transition.params);
                 return true;
             }
@@ -421,9 +429,70 @@ void SceneManager::Update() {
         std::string scene = pendingScene;
         std::string spawn = pendingSpawn;
         json params = pendingParams;
+        std::string effect = pendingEffect;
+        json effectParams = pendingEffectParams.is_object() ? pendingEffectParams : json::object();
         hasPending = false;
-        LoadScene(scene, spawn, params);
+        pendingEffect.clear();
+        pendingEffectParams = json::object();
+
+        if (effect == "page_curl") {
+            int w = Renderer::Width();
+            int h = Renderer::Height();
+            if (w <= 0 || h <= 0) { w = EngineConfig::SCREEN_WIDTH; h = EngineConfig::SCREEN_HEIGHT; }
+            if (!transitionOldRT) transitionOldRT = std::make_unique<RenderTarget>();
+            transitionOldRT->Resize(w, h);
+            CaptureSceneTo(*transitionOldRT);      // 快照旧场景（像素，不保留任何 gameplay 对象）
+
+            LoadScene(scene, spawn, params);       // 立刻切到新场景（下方为实时新场景）
+
+            transitionActive = true;
+            transitionElapsed = 0.0f;
+            transitionDuration = effectParams.value("duration", 0.9f);
+            transitionParams = MeshPageCurlParams{};
+            transitionParams.progress = 0.0f;
+            transitionParams.curlRadius = effectParams.value("curlRadius", 0.14f);
+            transitionParams.curvature = effectParams.value("curvature", 0.8f);
+            transitionParams.shadowStrength = effectParams.value("shadowStrength", 0.7f);
+            transitionParams.highlightStrength = effectParams.value("highlightStrength", 0.35f);
+            transitionParams.backsideDarken = effectParams.value("backsideDarken", 0.18f);
+            transitionParams.tessellation = effectParams.value("tessellation", 64);
+            transitionParams.originX = effectParams.value("originX", 1.0f);
+            transitionParams.originY = effectParams.value("originY", 1.0f);
+            transitionParams.dragX = effectParams.value("dragX", transitionParams.originX);
+            transitionParams.dragY = effectParams.value("dragY", transitionParams.originY);
+        } else {
+            LoadScene(scene, spawn, params);       // 未声明 transition：瞬时切换
+        }
     }
+
+    if (transitionActive) {
+        transitionElapsed += Time::DeltaTime();
+        if (transitionElapsed >= transitionDuration) transitionActive = false;
+    }
+}
+
+void SceneManager::CaptureSceneTo(RenderTarget& target) {
+    target.Bind();
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    Render();                 // 把当前 view 的画面画进 RT
+    target.Unbind();
+    Renderer::CheckError("transition capture");
+}
+
+void SceneManager::RenderTransition(int width, int height) {
+    if (!transitionActive || !transitionOldRT || !transitionOldRT->Valid()) return;
+    if (!PostProcess::CompositeTexture()) return;
+
+    float t = transitionDuration > 0.0f ? transitionElapsed / transitionDuration : 1.0f;
+    t = std::min(std::max(t, 0.0f), 1.0f);
+    // easeOutCubic：立刻起步、结尾自然收，避免开头“停顿感”。折痕几何仍由 Bézier 决定。
+    float e = 1.0f - std::pow(1.0f - t, 3.0f);
+    transitionParams.progress = e;
+
+    const Texture* newScene = PostProcess::WorldTexture();
+    if (!newScene) return;
+    MeshPageCurl::Render(transitionOldRT->ColorTexture(), newScene, width, height, transitionParams);
 }
 
 void SceneManager::DrawWorld() {
