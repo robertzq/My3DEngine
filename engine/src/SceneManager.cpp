@@ -11,6 +11,8 @@
 #include "Engine/SceneController.h"
 #include "Engine/SceneRegistry.h"
 #include "Engine/SceneView.h"
+#include "Engine/ShaderManager.h"
+#include "Engine/SpriteEffect.h"
 #include "Engine/Time.h"
 
 SceneManager::SceneManager() = default;
@@ -94,6 +96,18 @@ bool SceneManager::LoadConfig(const std::string& configResourceId) {
         }
     }
 
+    if (config.contains("shaders") && config["shaders"].is_object()) {
+        for (auto it = config["shaders"].begin(); it != config["shaders"].end(); ++it) {
+            std::string vert = it.value().value("vertex", "");
+            std::string frag = it.value().value("fragment", "");
+            if (!vert.empty() && !frag.empty()) {
+                ShaderManager::Load(it.key(), vert, frag);
+            } else {
+                LOG_WARN("SceneManager: shader 配置缺少 vertex/fragment -> " << it.key());
+            }
+        }
+    }
+
     LOG_INFO("SceneManager: 已加载 " << scenes.size() << " 个场景, " << tilesets.size() << " 个图块集");
     return true;
 }
@@ -173,6 +187,28 @@ Entity* SceneManager::SpawnDef(const EntityDef& def) {
     if (def.hasCollider) {
         entity->collider.offset = def.collider;
         entity->collider.enabled = true;
+    }
+
+    // 数据驱动 sprite shader：按 id 从 ShaderManager 取，创建 entity 拥有的 effect 实例
+    if (!def.shader.empty()) {
+        Shader* shader = ShaderManager::Get(def.shader);
+        if (shader) {
+            entity->effectStorage = std::make_unique<SpriteEffect>(shader);
+            if (def.shaderParams.is_object()) {
+                for (auto p = def.shaderParams.begin(); p != def.shaderParams.end(); ++p) {
+                    const json& v = p.value();
+                    if (v.is_boolean()) entity->effectStorage->SetInt(p.key(), v.get<bool>() ? 1 : 0);
+                    else if (v.is_number_integer()) entity->effectStorage->SetInt(p.key(), v.get<int>());
+                    else if (v.is_number()) entity->effectStorage->SetFloat(p.key(), v.get<float>());
+                    else if (v.is_array() && v.size() == 2) entity->effectStorage->SetVec2(p.key(), v[0].get<float>(), v[1].get<float>());
+                    else if (v.is_array() && v.size() == 3) entity->effectStorage->SetVec3(p.key(), v[0].get<float>(), v[1].get<float>(), v[2].get<float>());
+                    else if (v.is_array() && v.size() == 4) entity->effectStorage->SetVec4(p.key(), v[0].get<float>(), v[1].get<float>(), v[2].get<float>(), v[3].get<float>());
+                }
+            }
+            entity->sprite.effect = entity->effectStorage.get();
+        } else {
+            LOG_WARN("SceneManager: 未知 shader id -> " << def.shader << " (fallback 默认 sprite shader)");
+        }
     }
 
     if (!def.behavior.empty()) {

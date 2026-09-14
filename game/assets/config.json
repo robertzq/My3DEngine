@@ -17,6 +17,10 @@
       "Vertical":   ["MoveUp", "MoveDown"]
     }
   },
+  "shaders": {
+    "hit_flash": { "vertex": "shaders/sprite.vert", "fragment": "shaders/hit_flash.frag" },
+    "grayscale": { "vertex": "shaders/sprite.vert", "fragment": "shaders/grayscale.frag" }
+  },
   "tilesets": {
     "island": {
       "tile_size": 32,
@@ -45,6 +49,11 @@
         "tag": "player",
         "texture": "player_sheet.png",
         "size": [48, 48],
+        "shader": "hit_flash",
+        "shader_params": {
+          "u_intensity": 0.0,
+          "u_flashColor": [1.0, 1.0, 1.0]
+        },
         "params": {
           "cols": 6,
           "rows": 5,

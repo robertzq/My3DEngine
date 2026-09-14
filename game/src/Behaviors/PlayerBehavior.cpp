@@ -6,6 +6,7 @@
 #include "Engine/Physics.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/SceneManager.h"
+#include "Engine/SpriteEffect.h"
 #include "Engine/Texture.h"
 
 void PlayerBehavior::OnSpawn(SceneContext& context) {
@@ -66,6 +67,14 @@ void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
     else if (dy > 0) self->animator.Play("walk_down");
     else self->animator.Play("idle");
     self->animator.Update(deltaTime);
+
+    // 数据驱动 sprite shader demo：按交互键触发 hit flash，参数随 time 衰减
+    if (Input::Pressed("Interact")) flash = 1.0f;
+    if (flash > 0.0f) {
+        flash -= deltaTime * 2.5f;
+        if (flash < 0.0f) flash = 0.0f;
+    }
+    if (self->sprite.effect) self->sprite.effect->SetFloat("u_intensity", flash);
 }
 
 static BehaviorRegistry::Proxy proxy_player("Player", []() {

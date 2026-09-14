@@ -3,6 +3,16 @@
 #include "Engine/Texture.h"
 
 class Shader;
+class SpriteEffect;
+
+// 每次 DrawSprite 的可选参数。shader 为空时使用默认 sprite shader。
+struct SpriteDrawOptions {
+    Shader* shader = nullptr;            // 指定 shader（为空用默认）
+    const SpriteEffect* effect = nullptr; // 指定则用其 shader + 参数（优先级高于 shader）
+    SDL_Color tint = {255, 255, 255, 255};
+    bool flipX = false;
+    bool flipY = false;
+};
 
 // OpenGL 3.3 Core 2D 渲染后端。
 // 坐标语义保持和旧 SDL_Renderer 一致：origin 左上、+x 右、+y 下，单位为像素。
@@ -36,6 +46,10 @@ public:
     // src 宽/高 <= 0 时使用整张纹理；dst 为屏幕像素坐标（已含 camera offset）
     static void DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
                            SDL_RendererFlip flip, const SDL_Color& tint = {255, 255, 255, 255});
+
+    // 带 shader / effect 的版本（自动注入内置 uniform）
+    static void DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
+                           const SpriteDrawOptions& options);
 
     // 基础图元（等价旧 SDL_RenderFillRect / DrawRect / DrawLine / RenderClear）
     static void Clear(const SDL_Color& color);

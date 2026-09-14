@@ -16,4 +16,6 @@ private:
     int rows = 5;
     int frameW = 0;
     int frameH = 0;
+
+    float flash = 0.0f;   // hit flash demo 0..1
 };
