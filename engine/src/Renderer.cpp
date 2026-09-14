@@ -1,7 +1,11 @@
 #include "Engine/Renderer.h"
 #include "Engine/GL.h"
 #include "Engine/Shader.h"
+#include "Engine/ShaderManager.h"
+#include "Engine/SpriteEffect.h"
+#include "Engine/Game.h"
 #include "Engine/Log.h"
+#include "Engine/Time.h"
 #include <cstring>
 #include <vector>
 
@@ -10,7 +14,7 @@ namespace {
 SDL_Window* window = nullptr;
 SDL_GLContext context = nullptr;
 
-Shader spriteShader;
+Shader* spriteShader = nullptr;   // non-owning，由 ShaderManager 持有
 unsigned int quadVao = 0;
 unsigned int quadVbo = 0;
 Texture whiteTexture;   // 1x1 白色，用于图元绘制
@@ -25,7 +29,7 @@ const char* SPRITE_VS =
     "layout(location=0) in vec2 aUnit;      // 0..1 quad\n"
     "uniform vec4 uDstRect;                 // x,y,w,h (pixels)\n"
     "uniform vec4 uUvRect;                  // u,v,uw,uh (normalized)\n"
-    "uniform vec2 uResolution;\n"
+    "uniform vec2 u_resolution;\n"
     "uniform vec2 uFlip;                    // 1.0 = flip axis\n"
     "out vec2 vUv;\n"
     "void main() {\n"
@@ -34,8 +38,8 @@ const char* SPRITE_VS =
     "    if (uFlip.y > 0.5) uv.y = uUvRect.y + uUvRect.w - (uv.y - uUvRect.y);\n"
     "    vUv = uv;\n"
     "    vec2 px = uDstRect.xy + aUnit * uDstRect.zw;\n"
-    "    float ndcX = (px.x / uResolution.x) * 2.0 - 1.0;\n"
-    "    float ndcY = 1.0 - (px.y / uResolution.y) * 2.0;\n"
+    "    float ndcX = (px.x / u_resolution.x) * 2.0 - 1.0;\n"
+    "    float ndcY = 1.0 - (px.y / u_resolution.y) * 2.0;\n"
     "    gl_Position = vec4(ndcX, ndcY, 0.0, 1.0);\n"
     "}\n";
 
@@ -43,10 +47,10 @@ const char* SPRITE_FS =
     "#version 330 core\n"
     "in vec2 vUv;\n"
     "out vec4 FragColor;\n"
-    "uniform sampler2D uTexture;\n"
-    "uniform vec4 uTint;\n"
+    "uniform sampler2D u_texture;\n"
+    "uniform vec4 u_tint;\n"
     "void main() {\n"
-    "    FragColor = texture(uTexture, vUv) * uTint;\n"
+    "    FragColor = texture(u_texture, vUv) * u_tint;\n"
     "}\n";
 
 const float UNIT_QUAD[12] = {
@@ -96,7 +100,8 @@ bool Renderer::Init(SDL_Window* win) {
     LOG_INFO("Renderer: GL_VERSION=" << (const char*)glGetString(0x1F02)
              << " RENDERER=" << (const char*)glGetString(0x1F01));
 
-    if (!spriteShader.LoadFromSource(SPRITE_VS, SPRITE_FS, "sprite_default")) {
+    spriteShader = ShaderManager::Register("sprite_default", SPRITE_VS, SPRITE_FS);
+    if (!spriteShader) {
         LOG_ERROR("Renderer: 默认 sprite shader 编译失败");
         return false;
     }
@@ -121,7 +126,7 @@ bool Renderer::Init(SDL_Window* win) {
 }
 
 void Renderer::Clean() {
-    spriteShader.Destroy();
+    spriteShader = nullptr;   // Shader 由 ShaderManager 释放
     if (whiteTexture.id_) { glDeleteTextures(1, &whiteTexture.id_); whiteTexture.id_ = 0; }
     if (quadVbo) { glDeleteBuffers(1, &quadVbo); quadVbo = 0; }
     if (quadVao) { glDeleteVertexArrays(1, &quadVao); quadVao = 0; }
@@ -139,10 +144,6 @@ void Renderer::BeginFrame(int width, int height) {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    spriteShader.Use();
-    spriteShader.SetInt("uTexture", 0);
-    spriteShader.SetVec2("uResolution", (float)width, (float)height);
 }
 
 void Renderer::EndFrame() {
@@ -245,21 +246,64 @@ bool Renderer::CheckError(const char* context) {
 
 void Renderer::DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
                           SDL_RendererFlip flip, const SDL_Color& tint) {
+    SpriteDrawOptions options;
+    options.tint = tint;
+    options.flipX = (flip & SDL_FLIP_HORIZONTAL) != 0;
+    options.flipY = (flip & SDL_FLIP_VERTICAL) != 0;
+    DrawSprite(texture, src, dst, options);
+}
+
+void Renderer::DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
+                          const SpriteDrawOptions& options) {
     if (!ready || !texture || !texture->Valid() || dst.w <= 0 || dst.h <= 0) return;
 
     SDL_Rect s = src;
     if (s.w <= 0 || s.h <= 0) s = {0, 0, texture->Width(), texture->Height()};
     if (s.w <= 0 || s.h <= 0) return;
 
+    // 选择 shader：effect 优先 -> options.shader -> 默认；无效则回退默认
+    Shader* shader = nullptr;
+    if (options.effect && options.effect->GetShader()) shader = options.effect->GetShader();
+    else if (options.shader) shader = options.shader;
+    if (!shader || !shader->Valid()) shader = spriteShader;
+    if (!shader || !shader->Valid()) return;
+
     const float texW = (float)texture->Width();
     const float texH = (float)texture->Height();
+    const float vw = (float)(viewportWidth > 0 ? viewportWidth : 1);
+    const float vh = (float)(viewportHeight > 0 ? viewportHeight : 1);
 
-    spriteShader.SetVec4("uDstRect", (float)dst.x, (float)dst.y, (float)dst.w, (float)dst.h);
-    spriteShader.SetVec4("uUvRect", s.x / texW, s.y / texH, s.w / texW, s.h / texH);
-    spriteShader.SetVec2("uFlip",
-                         (flip & SDL_FLIP_HORIZONTAL) ? 1.0f : 0.0f,
-                         (flip & SDL_FLIP_VERTICAL) ? 1.0f : 0.0f);
-    spriteShader.SetVec4("uTint", tint.r / 255.0f, tint.g / 255.0f, tint.b / 255.0f, tint.a / 255.0f);
+    shader->Use();
+
+    // sprite 通道几何 uniform
+    shader->SetVec4("uDstRect", (float)dst.x, (float)dst.y, (float)dst.w, (float)dst.h);
+    shader->SetVec4("uUvRect", s.x / texW, s.y / texH, s.w / texW, s.h / texH);
+    shader->SetVec2("uFlip", options.flipX ? 1.0f : 0.0f, options.flipY ? 1.0f : 0.0f);
+
+    // 内置 uniform
+    shader->SetFloat("u_time", static_cast<float>(Time::ElapsedTime()));
+    shader->SetFloat("u_deltaTime", Time::DeltaTime());
+    shader->SetVec2("u_resolution", vw, vh);
+    shader->SetVec2("u_texelSize", 1.0f / vw, 1.0f / vh);
+    shader->SetVec2("u_cameraPosition", (float)Game::camera.x, (float)Game::camera.y);
+    shader->SetVec4("u_tint", options.tint.r / 255.0f, options.tint.g / 255.0f,
+                    options.tint.b / 255.0f, options.tint.a / 255.0f);
+    shader->SetInt("u_texture", 0);
+
+    // effect 实例参数
+    if (options.effect) {
+        for (const auto& entry : options.effect->Params()) {
+            const SpriteEffect::Param& p = entry.second;
+            switch (p.kind) {
+                case 1: shader->SetInt(entry.first, p.i); break;
+                case 2: shader->SetFloat(entry.first, p.f[0]); break;
+                case 3: shader->SetVec2(entry.first, p.f[0], p.f[1]); break;
+                case 4: shader->SetVec3(entry.first, p.f[0], p.f[1], p.f[2]); break;
+                case 5: shader->SetVec4(entry.first, p.f[0], p.f[1], p.f[2], p.f[3]); break;
+                default: break;
+            }
+        }
+    }
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture->id_);

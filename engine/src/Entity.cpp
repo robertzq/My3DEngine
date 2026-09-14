@@ -1,5 +1,6 @@
 #include "Engine/Entity.h"
 #include "Engine/Renderer.h"
+#include "Engine/SpriteEffect.h"
 
 Entity::Entity() {
     animator.Bind(&sprite);
@@ -30,5 +31,10 @@ void Entity::Render(const SDL_Rect& camera) const {
     dest.h = transform.h;
 
     SDL_Rect src = (sprite.src.w > 0 && sprite.src.h > 0) ? sprite.src : SDL_Rect{0, 0, 0, 0};
-    Renderer::DrawSprite(sprite.texture, src, dest, sprite.flip);
+
+    SpriteDrawOptions options;
+    options.effect = sprite.effect;
+    options.flipX = (sprite.flip & SDL_FLIP_HORIZONTAL) != 0;
+    options.flipY = (sprite.flip & SDL_FLIP_VERTICAL) != 0;
+    Renderer::DrawSprite(sprite.texture, src, dest, options);
 }

@@ -17,6 +17,7 @@ struct EntityDef {
     std::string behavior;
     std::string tag;
     std::string texture;
+    std::string shader;          // optional ShaderManager id
     int x = 0;
     int y = 0;
     int w = 0;
@@ -26,6 +27,7 @@ struct EntityDef {
     SDL_Rect src{0, 0, 0, 0};
     SDL_Rect collider{0, 0, 0, 0};
     json params;
+    json shaderParams;           // optional { uniform: value }
 };
 
 struct SceneTransition {
@@ -44,8 +46,12 @@ inline EntityDef ParseEntity(const json& j) {
     def.behavior = j.value("behavior", "");
     def.tag = j.value("tag", "");
     def.texture = j.value("texture", "");
+    def.shader = j.value("shader", "");
     def.visible = j.value("visible", true);
     def.params = j.value("params", json::object());
+    if (j.contains("shader_params") && j["shader_params"].is_object()) {
+        def.shaderParams = j["shader_params"];
+    }
 
     if (j.contains("at") && j["at"].is_array() && j["at"].size() >= 2) {
         def.x = j["at"][0].get<int>();

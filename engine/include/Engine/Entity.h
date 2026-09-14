@@ -7,6 +7,7 @@
 #include "Engine/Animator.h"
 
 class Texture;
+class SpriteEffect;
 
 struct Transform {
     float x = 0.0f;
@@ -19,6 +20,7 @@ struct Sprite {
     Texture* texture = nullptr;   // non-owning（ResourceManager / TextRenderer 拥有）
     SDL_Rect src{0, 0, 0, 0};
     SDL_RendererFlip flip = SDL_FLIP_NONE;
+    SpriteEffect* effect = nullptr;   // non-owning（Entity::effectStorage 或游戏持有）
 };
 
 // 碰撞层（bit flag）：layer = 自己属于哪层，mask = 自己关心哪些层
@@ -66,6 +68,9 @@ public:
     float sortYOffset = 0.0f;
 
     std::unique_ptr<Behavior> behavior;
+
+    // 数据驱动 sprite shader：由 SceneManager 按 EntityDef.shader 创建并持有
+    std::unique_ptr<SpriteEffect> effectStorage;
 
     SDL_Rect Bounds() const;
     float SortKey() const { return transform.y + transform.h + sortYOffset; }

@@ -3,6 +3,7 @@
 #include "Engine/TextRenderer.h"
 #include "Engine/Renderer.h"
 #include "Engine/PostProcess.h"
+#include "Engine/ShaderManager.h"
 #include "Engine/Log.h"
 #include "Engine/Time.h"
 #include "Engine/Input.h"
@@ -102,7 +103,8 @@ void Game::clean() {
     TextRenderer::Clean();        // 释放文字 GL 纹理（context 仍有效）
     ResourceManager::Clear();     // 释放纹理 GL 对象
     PostProcess::Clean();         // 释放 FBO / ping-pong / blit shader
-    Renderer::Clean();            // 删除 shader / quad / GL context
+    ShaderManager::Clean();       // 释放所有 shader（含默认 sprite shader）
+    Renderer::Clean();            // 删除 quad / white / GL context
     if (window) SDL_DestroyWindow(window);
     SDL_Quit();
     LOG_INFO("引擎清理完成");
