@@ -8,7 +8,9 @@
 
 ## ✨ 特性
 
-- **场景管理**：基于 `Scene` 基类的状态管理，`SceneFactory` 支持场景自注册与工厂创建。
+- **数据驱动场景**：`SceneManager` 从 JSON 配置读取场景定义，负责地图加载、出生点、图块触发器与场景切换；`SceneView`（只渲染）与 `SceneController`（逻辑）分离，符合 MVC。
+- **通用瓦片地图**：`TileSet` / `TileMap` 支持空格或紧凑格式 `.map`，图块的纹理、阻挡、触发器均由配置决定，不含任何硬编码图块。
+- **场景管理**：基于 `Scene` 基类的状态管理，`SceneFactory` 支持场景自注册与工厂创建（兼容旧用法）。
 - **游戏循环**：`Game` 负责 SDL 初始化、事件分发、更新与渲染，单例访问 `Game::instance()`。
 - **资源管理**：`ResourceManager` 从内存资源表加载并缓存纹理 / 文本，支持资源表注入。
 - **游戏对象**：`GameObject` 提供渲染、帧动画、重力、速度与碰撞盒。
@@ -25,9 +27,17 @@
 engine/
 ├── CMakeLists.txt          # 引擎库构建配置（含 SDL 平台检测）
 ├── include/Engine/         # 公共 API 头文件
-│   ├── Game.h              #   游戏循环 + 场景管理
-│   ├── Scene.h             #   场景基类
-│   ├── SceneFactory.h      #   场景自注册工厂
+│   ├── Game.h              #   游戏循环 + SDL 初始化（持有 SceneManager）
+│   ├── SceneManager.h      #   控制器：配置加载 / 场景切换 / 相机 / 触发器
+│   ├── SceneData.h         #   数据模型：场景定义 / 转场 / 出生点
+│   ├── TileSet.h           #   图块集：纹理 / 阻挡 / 触发器名
+│   ├── TileMap.h           #   通用瓦片地图：解析 / 绘制 / 碰撞盒 / 触发器
+│   ├── SceneView.h         #   视图基类（场景脚本，只负责渲染）
+│   ├── SceneController.h   #   控制器基类（游戏逻辑）
+│   ├── SceneContext.h      #   传给 View / Controller 的运行时上下文
+│   ├── SceneRegistry.h     #   View / Controller 自注册工厂
+│   ├── Scene.h             #   旧式场景基类（兼容）
+│   ├── SceneFactory.h      #   旧式场景自注册工厂（兼容）
 │   ├── GameObject.h        #   通用游戏对象基类
 │   ├── ResourceManager.h   #   资源加载 / 缓存 / 绘制
 │   ├── TextRenderer.h      #   文字渲染（SDL_ttf）
@@ -121,9 +131,12 @@ while (game.running()) {
 game.clean();
 ```
 
-常用静态成员：`Game::renderer`（SDL 渲染器）、`Game::camera`（摄像机矩形）、`Game::event`（当前事件）、`Game::instance()`（单例）。
+常用静态成员：`Game::renderer`（SDL 渲染器）、`Game::camera`（摄像机矩形）、`Game::event`（当前事件）、`Game::instance()`（单例）、`game.scenes()`（数据驱动的 `SceneManager`）。
 
-### 2. `Scene` —— 场景基类
+> `Game` 的 `update/render/handleEvents` 会把调用委托给 `game.scenes()`（若已 `Start()`），
+> 否则回退到旧的 `currentScene`。
+
+### 2. `Scene` —— 场景基类（兼容旧用法）
 
 所有游戏场景继承 `Scene`，实现 5 个虚方法：
 
@@ -193,6 +206,130 @@ static SceneFactory::Proxy proxy_MyScene("MyScene", [](const json& params) {
 // 使用：
 Scene* s = SceneFactory::Create("MyScene", params);
 ```
+
+> `Scene` / `SceneFactory` 为兼容旧项目的写法。新项目推荐下面数据驱动的
+> `SceneManager` + `SceneView` / `SceneController`。
+
+### 6. `TileSet` / `TileMap` —— 通用瓦片地图
+
+图块集描述「每个数字对应什么纹理、是否阻挡、触发哪个事件」，全部由数据决定，
+引擎里没有任何游戏专属图块：
+
+```cpp
+#include "Engine/TileMap.h"
+
+TileSet tileSet;
+tileSet.tileSize = 32;
+tileSet.tiles[0] = { "grass.png" };                 // texture / solid / trigger
+tileSet.tiles[1] = { "tree.png", true };            // 阻挡
+tileSet.tiles[7] = { "door.png", false, "door" };   // 触发器
+
+TileMap map;
+map.Load("village.map", tileSet);
+map.Draw(Game::renderer, Game::camera);
+
+const std::vector<SDL_Rect>& solid = map.Colliders();   // 所有阻挡格
+std::vector<SDL_Rect> doors = map.TriggerRects("door"); // 所有同名触发器
+```
+
+`.map` 同时支持空格分隔（`1 2 3`）与紧凑数字格式（`123`）。
+
+### 7. 数据驱动场景（`SceneManager` + 配置文件）
+
+`SceneManager` 是引擎侧控制器：读配置、加载地图、按出生点放置玩家、
+处理图块触发器转场、跟随相机。游戏只需提供 `config.json`。
+
+```jsonc
+{
+  "initial": { "scene": "village", "spawn": "default" },
+  "tilesets": {
+    "overworld": {
+      "tile_size": 32,
+      "tiles": {
+        "1": { "texture": "tree.png", "solid": true },
+        "7": { "texture": "door.png", "trigger": "to_house1" },
+        "15": { "texture": "entrance.png", "trigger": "exit" },
+        "17": { "texture": "mic.png", "trigger": "boss" }
+      }
+    }
+  },
+  "scenes": {
+    "village": {
+      "view": "VillageView",              // SceneRegistry 注册名
+      "controller": "VillageController",  // 可选
+      "map": "village.map",
+      "tileset": "overworld",
+      "spawns": { "default": [100, 100], "from_house1": [192, 230] },
+      "transitions": [
+        { "trigger": "to_house1", "target": "house1", "spawn": "entrance" }
+      ]
+    },
+    "battle": {
+      "view": "BattleView",
+      "controller": "BattleController",
+      "params": { "return_scene": "village" }
+    }
+  }
+}
+```
+
+```cpp
+Game game;
+game.init("My Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+          EngineConfig::SCREEN_WIDTH, EngineConfig::SCREEN_HEIGHT, false);
+
+game.scenes().LoadConfig("config.json");
+game.scenes().Start();                 // 从 config 的 initial 场景开始
+
+game.update();                          // 内部：controller.Update -> 触发器检查 -> 相机跟随
+```
+
+* 踩到 `trigger` 图块时，引擎按 `transitions` 自动切到 `target` 场景的 `spawn` 出生点。
+* `automatic: false` 的转场不会被自动处理，交给游戏 Controller：
+  `context.manager->RequestTransition("boss", { {"spawn_x", 100}, {"spawn_y", 200} });`
+* `RequestScene(target, spawn, params)` 可携带运行时参数；`spawn_x` / `spawn_y` 会覆盖配置出生点。
+
+### 8. `SceneView` / `SceneController` —— MVC 场景脚本
+
+视图只负责渲染，逻辑放在控制器；两者用注册名与配置里的 `view` / `controller` 对应：
+
+```cpp
+#include "Engine/SceneController.h"
+#include "Engine/SceneView.h"
+#include "Engine/SceneRegistry.h"
+
+class VillageController : public SceneController {
+public:
+    void OnEnter(SceneContext& ctx) override {
+        SDL_Point p = ctx.manager->SpawnPosition(ctx.params.value("spawn", "default"), ctx.params);
+        player = new GameObject("player.png", Game::renderer, p.x, p.y, 1);
+        ctx.manager->SetPlayer(player);   // 引擎自动设置世界边界
+    }
+    void OnExit() override { delete player; }
+    void Update(SceneContext& ctx) override {
+        player->Update();
+        Physics::ResolveRPGCollision(player, ctx.map->Colliders());
+    }
+private:
+    GameObject* player = nullptr;
+};
+
+class VillageView : public SceneView {
+public:
+    void OnEnter(SceneContext& ctx) override { ctrl = static_cast<VillageController*>(ctx.controller); }
+    void Render(SceneContext& ctx) override {
+        ctx.map->Draw(Game::renderer, Game::camera);
+        ctrl->player->Render();
+    }
+private:
+    VillageController* ctrl = nullptr;
+};
+
+static SceneRegistry::ControllerProxy c("VillageController", [] { return new VillageController(); });
+static SceneRegistry::ViewProxy v("VillageView", [] { return new VillageView(); });
+```
+
+`SceneContext` 提供 `game / manager / controller / map / data / params`。
 
 ---
 
