@@ -19,6 +19,7 @@ public:
     void clean();
 
     bool running() { return isRunning; }
+    void Quit() { isRunning = false; }
     static Game* instance() { return s_instance; }
 
     // 全局静态变量（事件、摄像机）

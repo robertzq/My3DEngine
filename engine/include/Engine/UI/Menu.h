@@ -3,12 +3,20 @@
 #include "Engine/UI/UIAction.h"
 #include <vector>
 
+// 菜单打开时的暂停语义（与 UIManager::Active() 解耦，按菜单定义）
+enum class UIPauseMode {
+    None,      // 不暂停（如 HUD / 只展示）
+    Gameplay,  // 暂停 gameplay 更新（默认）
+    Full       // 暂停 gameplay + 帧后效果等
+};
+
 // Menu = UIElement 容器 + focus/navigation 状态。不含 input/action 逻辑。
 // focus order = children 顺序中的可 focus 项（visible && enabled && focusable）。
 class Menu : public UIContainer {
 public:
     bool open = false;
     bool active = true;   // false = 被上层菜单覆盖：保留状态但不响应输入、不显示 focus
+    UIPauseMode pauseMode = UIPauseMode::Gameplay;
 
     void Open();     // 显示并自动聚焦第一个有效元素
     void Close();    // 隐藏并清除 focus

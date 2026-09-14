@@ -49,3 +49,17 @@ void MenuStack::Update(float dt) {
 void MenuStack::Render() {
     for (auto& m : stack) if (m) m->Render();
 }
+
+bool MenuStack::ShouldPauseGameplay() const {
+    for (const auto& m : stack) {
+        if (m && m->IsOpen() && m->IsActive() && m->pauseMode != UIPauseMode::None) return true;
+    }
+    return false;
+}
+
+bool MenuStack::ShouldPauseAll() const {
+    for (const auto& m : stack) {
+        if (m && m->IsOpen() && m->IsActive() && m->pauseMode == UIPauseMode::Full) return true;
+    }
+    return false;
+}

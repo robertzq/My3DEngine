@@ -86,9 +86,11 @@ void Game::update() {
     Time::Tick();
     // UI 先于 gameplay 处理输入：菜单打开时会切换 Input 上下文，屏蔽 gameplay 动作
     UIManager::HandleInput(Time::DeltaTime());
-    sceneManager.Update();
+    UIManager::DispatchActions();   // 注册了 handler 时消费 action（菜单可在此 Push/Pop）
+    // pause 语义由菜单定义决定，不等同于 UIManager::Active()
+    if (!UIManager::ShouldPauseGameplay()) sceneManager.Update();
     UIManager::Update(Time::DeltaTime());
-    RedBorder::Update(Time::DeltaTime());
+    if (!UIManager::ShouldPauseAll()) RedBorder::Update(Time::DeltaTime());
 }
 
 void Game::render() {

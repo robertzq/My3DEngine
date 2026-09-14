@@ -30,6 +30,9 @@ public:
     void Update(float dt);                        // 全部 update（布局）
     void Render();                                // 从底到顶绘制
 
+    bool ShouldPauseGameplay() const;             // 任一 active 菜单要求（Gameplay/Full）
+    bool ShouldPauseAll() const;                  // 任一 active 菜单要求 Full
+
 private:
     void ActivateTop();
 
