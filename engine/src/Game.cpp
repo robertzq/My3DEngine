@@ -93,10 +93,16 @@ void Game::render() {
     PostProcess::BeginWorld();
     sceneManager.Render();
     PostProcess::EndWorld();
-    PostProcess::ApplyWorld();
-    // 未来 UI：PostProcess::BindComposite() 后绘制
-    if (sceneManager.InTransition()) sceneManager.RenderTransition(w, h);
-    else PostProcess::ApplyFinal();
+
+    if (sceneManager.InTransition()) {
+        // 转场：old snapshot + new world -> PageCurl -> composite（替代 world FX 阶段）
+        PostProcess::BindComposite();
+        sceneManager.RenderTransition(w, h);
+    } else {
+        PostProcess::ApplyWorld();
+        // 未来 UI：PostProcess::BindComposite() 后绘制
+    }
+    PostProcess::ApplyFinal();
 
     Renderer::EndFrame();
 }

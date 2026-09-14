@@ -55,4 +55,5 @@ public:
     // 供未来 UI 使用：把 UI 画到 composite 上（FinalFX 之前）
     static void BindComposite();
     static const Texture* CompositeTexture();
+    static const Texture* WorldTexture();
 };

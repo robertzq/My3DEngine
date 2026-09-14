@@ -491,8 +491,9 @@ void SceneManager::RenderTransition(int width, int height) {
                          : (1.0f - std::pow(-2.0f * t + 2.0f, 3.0f) / 2.0f);
     transitionParams.progress = e;
 
-    MeshPageCurl::Render(transitionOldRT->ColorTexture(), PostProcess::CompositeTexture(),
-                         width, height, transitionParams);
+    const Texture* newScene = PostProcess::WorldTexture();
+    if (!newScene) return;
+    MeshPageCurl::Render(transitionOldRT->ColorTexture(), newScene, width, height, transitionParams);
 }
 
 void SceneManager::DrawWorld() {

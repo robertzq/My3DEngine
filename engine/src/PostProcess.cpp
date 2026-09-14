@@ -227,3 +227,8 @@ const Texture* PostProcess::CompositeTexture() {
     State& s = S();
     return (s.composite && s.composite->Valid()) ? s.composite->ColorTexture() : nullptr;
 }
+
+const Texture* PostProcess::WorldTexture() {
+    State& s = S();
+    return (s.world && s.world->Valid()) ? s.world->ColorTexture() : nullptr;
+}
