@@ -18,6 +18,7 @@ Texture whiteTexture;   // 1x1 白色，用于图元绘制
 int viewportWidth = 0;
 int viewportHeight = 0;
 bool ready = false;
+bool debug = false;
 
 const char* SPRITE_VS =
     "#version 330 core\n"
@@ -194,6 +195,52 @@ void Renderer::DestroyTexture(Texture* texture) {
     if (!texture) return;
     if (texture->id_) glDeleteTextures(1, &texture->id_);
     delete texture;
+}
+
+Texture* Renderer::CreateRenderTexture(int width, int height) {
+    if (width <= 0 || height <= 0) return nullptr;
+
+    Texture* texture = new Texture();
+    texture->width_ = width;
+    texture->height_ = height;
+    glGenTextures(1, &texture->id_);
+    glBindTexture(GL_TEXTURE_2D, texture->id_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return texture;
+}
+
+void Renderer::BindScreen() {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, viewportWidth, viewportHeight);
+}
+
+void Renderer::DrawFullscreen(Shader& shader, const Texture* input) {
+    if (!ready) return;
+    shader.Use();
+    shader.SetInt("u_inputTexture", 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, input && input->Valid() ? input->id_ : whiteTexture.id_);
+    glBindVertexArray(quadVao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+void Renderer::SetDebug(bool enabled) { debug = enabled; }
+bool Renderer::Debug() { return debug; }
+
+bool Renderer::CheckError(const char* context) {
+    if (!debug) return false;
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        LOG_ERROR("GL error 0x" << std::hex << err << std::dec << " @ " << (context ? context : "?"));
+        return true;
+    }
+    return false;
 }
 
 void Renderer::DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL_Rect& dst,
