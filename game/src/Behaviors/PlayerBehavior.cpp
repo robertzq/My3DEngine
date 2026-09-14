@@ -6,6 +6,7 @@
 #include "Engine/Physics.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/SceneManager.h"
+#include "Engine/Texture.h"
 
 void PlayerBehavior::OnSpawn(SceneContext& context) {
     std::string texture = config.value("texture", "player_sheet.png");
@@ -15,8 +16,8 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
     rows = config.value("rows", 5);
     speed = config.value("speed", 180.0f);
 
-    int texW = 0, texH = 0;
-    if (self->sprite.texture) SDL_QueryTexture(self->sprite.texture, nullptr, nullptr, &texW, &texH);
+    int texW = self->sprite.texture ? self->sprite.texture->Width() : 0;
+    int texH = self->sprite.texture ? self->sprite.texture->Height() : 0;
     frameW = cols > 0 ? texW / cols : texW;
     frameH = rows > 0 ? texH / rows : texH;
 

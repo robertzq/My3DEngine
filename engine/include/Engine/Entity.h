@@ -6,6 +6,8 @@
 #include "Engine/Behavior.h"
 #include "Engine/Animator.h"
 
+class Texture;
+
 struct Transform {
     float x = 0.0f;
     float y = 0.0f;
@@ -14,7 +16,7 @@ struct Transform {
 };
 
 struct Sprite {
-    SDL_Texture* texture = nullptr;
+    Texture* texture = nullptr;   // non-owning（ResourceManager / TextRenderer 拥有）
     SDL_Rect src{0, 0, 0, 0};
     SDL_RendererFlip flip = SDL_FLIP_NONE;
 };
@@ -68,5 +70,5 @@ public:
     SDL_Rect Bounds() const;
     float SortKey() const { return transform.y + transform.h + sortYOffset; }
     void SetPosition(float x, float y);
-    void Render(SDL_Renderer* renderer, const SDL_Rect& camera) const;
+    void Render(const SDL_Rect& camera) const;
 };

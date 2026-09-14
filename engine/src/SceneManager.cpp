@@ -7,6 +7,7 @@
 #include "Engine/Log.h"
 #include "Engine/Physics.h"
 #include "Engine/ResourceManager.h"
+#include "Engine/Renderer.h"
 #include "Engine/SceneController.h"
 #include "Engine/SceneRegistry.h"
 #include "Engine/SceneView.h"
@@ -390,7 +391,7 @@ void SceneManager::Update() {
 }
 
 void SceneManager::DrawWorld() {
-    if (map) map->DrawGround(Game::renderer, Game::camera);
+    if (map) map->DrawGround(Game::camera);
 
     struct Item {
         float key;
@@ -420,9 +421,9 @@ void SceneManager::DrawWorld() {
             dest.y -= Game::camera.y;
             if (dest.x < -dest.w || dest.x > Game::camera.w ||
                 dest.y < -dest.h || dest.y > Game::camera.h) continue;
-            SDL_RenderCopy(Game::renderer, item.tile->texture, nullptr, &dest);
+            Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
         } else if (item.entity) {
-            item.entity->Render(Game::renderer, Game::camera);
+            item.entity->Render(Game::camera);
         }
     }
 }
