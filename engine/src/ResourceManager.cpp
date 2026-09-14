@@ -16,6 +16,10 @@ void ResourceManager::SetResourceTable(const ResourceTable& table) {
     resourceTable = &table;
 }
 
+bool ResourceManager::Has(const std::string& id) {
+    return resourceTable && resourceTable->find(id) != resourceTable->end();
+}
+
 SDL_Texture* ResourceManager::GetTexture(const std::string& id) {
     // 1. 先查缓存
     auto it = textureCache.find(id);
@@ -70,7 +74,7 @@ SDL_Texture* ResourceManager::LoadTextureFromMemory(const std::string& id) {
     return tex;
 }
 
-std::string ResourceManager::GetTextContent(const std::string& id) {
+std::string ResourceManager::GetText(const std::string& id) {
     if (!resourceTable) {
         LOG_ERROR("资源表未注册，无法加载 -> " << id);
         return "";
@@ -86,7 +90,14 @@ std::string ResourceManager::GetTextContent(const std::string& id) {
     return std::string(reinterpret_cast<const char*>(it->second.data), it->second.size);
 }
 
-void ResourceManager::Clean() {
+void ResourceManager::Unload(const std::string& id) {
+    auto it = textureCache.find(id);
+    if (it == textureCache.end()) return;
+    if (it->second) SDL_DestroyTexture(it->second);
+    textureCache.erase(it);
+}
+
+void ResourceManager::Clear() {
     for (auto& pair : textureCache) {
         SDL_DestroyTexture(pair.second);
     }

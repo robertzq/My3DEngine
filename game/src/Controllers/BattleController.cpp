@@ -61,7 +61,7 @@ void BattleController::LoadGifts() {
     hugeGift = {"舰长一号", 1980};
     starWishGift = {"星愿水晶球", 1000};
 
-    std::string jsonStr = ResourceManager::GetTextContent("gifts.json");
+    std::string jsonStr = ResourceManager::GetText("gifts.json");
     if (jsonStr.empty()) {
         LOG_WARN("gifts.json not found or empty!");
         enemyGiftPool.push_back(basicGift);
