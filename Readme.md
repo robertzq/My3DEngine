@@ -30,6 +30,7 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 - **物理碰撞**：AABB 查询 / 解析分离，`Collider` 带 `layer`/`mask`/`isTrigger`，支持实体触发，横版与俯视角两套移动解析。
 - **文字渲染**：`TextRenderer` 基于 SDL_ttf，带纹理缓存与抗锯齿。
 - **输入**：`Input` 键盘状态轮询 + action 映射（`Down`/`Pressed`/`Released`/`Axis`），gameplay 不直接依赖 `SDL_SCANCODE`。
+- **音频**：`Audio`（SDL_mixer）从内存资源表加载 music / sfx，music 与 SFX 分开控制音量，gameplay 只用资源 ID。
 - **日志**：`Log` 分级日志宏 `LOG_DEBUG/INFO/WARN/ERROR`。
 
 ---
@@ -73,6 +74,7 @@ brew install cmake
 brew install sdl2
 brew install sdl2_image
 brew install sdl2_ttf
+brew install sdl2_mixer
 ```
 
 ### Windows
@@ -476,6 +478,31 @@ LOG_ERROR("加载失败: " << id);
 ```
 
 这样玩家走到树/房子的北面会被挡住，走到南面则盖住它们。
+
+### 11. `Audio` —— 最小 2D 音频
+
+`Audio` 基于 SDL_mixer，从内存资源表加载 music / sfx；gameplay 只使用资源 ID，不持有 `Mix_Chunk*` / `Mix_Music*`。
+
+```cpp
+#include "Engine/Audio.h"
+
+Audio::LoadMusic("village_theme.ogg");   // 惰性加载并缓存（重复调用不会重复创建）
+Audio::LoadSFX("hit.wav");
+
+Audio::PlayMusic("village_theme.ogg");   // 同一首正在播放时不重启
+Audio::StopMusic();
+Audio::PauseMusic();
+Audio::ResumeMusic();
+
+Audio::PlaySFX("hit.wav");
+
+Audio::SetMusicVolume(0.6f);             // 0.0 ~ 1.0（内部转换到 SDL_mixer 范围）
+Audio::SetSFXVolume(0.8f);
+```
+
+* 原始 bytes 由游戏的 `EmbeddedResource` 表拥有（经 `ResourceManager` 访问）；`Mix_Chunk*` / `Mix_Music*` 由 `Audio` 拥有并在 `Audio::Clean()` 释放。
+* 生命周期：`Game::init` 内 `Audio::Init()`；`Game::clean()` 内在 `ResourceManager::Clear()` 与 `SDL_Quit()` 之前调用 `Audio::Clean()`（可重复安全）。
+* 不存在的 ID 会记录日志并安全返回，不崩溃。
 
 ---
 
