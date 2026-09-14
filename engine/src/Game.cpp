@@ -3,6 +3,7 @@
 #include "Engine/Log.h"
 #include "Engine/Time.h"
 #include "Engine/Input.h"
+#include "Engine/Audio.h"
 
 // 静态成员初始化
 SDL_Renderer* Game::renderer = nullptr;
@@ -41,6 +42,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
         }
 
         Time::Reset();
+        Audio::Init();
     } else {
         isRunning = false;
     }
@@ -72,6 +74,7 @@ void Game::render() {
 }
 
 void Game::clean() {
+    Audio::Clean();
     ResourceManager::Clear();
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
