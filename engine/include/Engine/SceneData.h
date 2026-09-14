@@ -36,6 +36,8 @@ struct SceneTransition {
     std::string spawn = "default";
     bool automatic = true;
     json params;
+    std::string transitionEffect;   // "" = instant；"page_curl" = 贝塞尔翻页
+    json transitionParams;
 };
 
 namespace scene_data_detail {
@@ -123,6 +125,14 @@ struct SceneData {
                 transition.spawn = t.value("spawn", "default");
                 transition.automatic = t.value("automatic", true);
                 transition.params = t.value("params", json::object());
+                if (t.contains("transition")) {
+                    if (t["transition"].is_string()) {
+                        transition.transitionEffect = t["transition"].get<std::string>();
+                    } else if (t["transition"].is_object()) {
+                        transition.transitionEffect = t["transition"].value("type", "");
+                        transition.transitionParams = t["transition"];
+                    }
+                }
                 data.transitions.push_back(transition);
             }
         }

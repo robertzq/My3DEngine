@@ -3,12 +3,14 @@
 #include "Engine/Log.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/TextRenderer.h"
+#include "Engine/Audio.h"
 #include "EmbeddedAssets.h"
 
 int main(int argc, char* argv[]) {
     const int frameDelay = 1000 / EngineConfig::TARGET_FPS;
 
     ResourceManager::SetResourceTable(EMBEDDED_ASSETS);
+    ResourceManager::SetBasePath("game/assets");
     ResourceManager::Init();
 
     Game game;
@@ -25,6 +27,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     game.scenes().Start();
+
+    Audio::PlayMusic("forget_me_not.mp3");
 
     while (game.running()) {
         Uint32 frameStart = SDL_GetTicks();

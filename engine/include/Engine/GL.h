@@ -44,6 +44,8 @@ typedef std::ptrdiff_t GLsizeiptr;
 #define GL_DYNAMIC_DRAW        0x88E8
 #define GL_UNSIGNED_SHORT      0x1403
 #define GL_DEPTH_TEST          0x0B71
+#define GL_SCISSOR_TEST        0x0C11
+#define GL_CULL_FACE           0x0B44
 #define GL_DEPTH_BUFFER_BIT    0x00000100
 #define GL_LEQUAL              0x0203
 #define GL_FRAMEBUFFER         0x8D40
@@ -100,6 +102,7 @@ typedef std::ptrdiff_t GLsizeiptr;
     X(void,   glDrawElements,          (GLenum, GLsizei, GLenum, const void*)) \
     X(void,   glDepthFunc,             (GLenum)) \
     X(void,   glDepthMask,             (GLboolean)) \
+    X(void,   glColorMask,             (GLboolean, GLboolean, GLboolean, GLboolean)) \
     X(void,   glReadPixels,            (GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void*)) \
     X(void,   glGenFramebuffers,       (GLsizei, GLuint*)) \
     X(void,   glDeleteFramebuffers,    (GLsizei, const GLuint*)) \

@@ -2,9 +2,13 @@
 #include "Engine/Renderer.h"
 #include "Engine/Log.h"
 #include <SDL_image.h>
+#include <fstream>
 
 std::map<std::string, Texture*> ResourceManager::textureCache;
 const ResourceTable* ResourceManager::resourceTable = nullptr;
+std::string ResourceManager::basePath;
+std::map<std::string, std::vector<unsigned char>> ResourceManager::fileBuffers;
+std::map<std::string, EmbeddedResource> ResourceManager::fileResources;
 
 void ResourceManager::Init() {
     size_t count = resourceTable ? resourceTable->size() : 0;
@@ -15,8 +19,17 @@ void ResourceManager::SetResourceTable(const ResourceTable& table) {
     resourceTable = &table;
 }
 
+void ResourceManager::SetBasePath(const std::string& path) {
+    basePath = path;
+}
+
 bool ResourceManager::Has(const std::string& id) {
-    return resourceTable && resourceTable->find(id) != resourceTable->end();
+    if (resourceTable && resourceTable->find(id) != resourceTable->end()) return true;
+    if (!basePath.empty()) {
+        std::ifstream f(basePath + "/" + id, std::ios::binary);
+        if (f.good()) return true;
+    }
+    return false;
 }
 
 Texture* ResourceManager::GetTexture(const std::string& id) {
@@ -35,23 +48,14 @@ Texture* ResourceManager::GetTexture(const std::string& id) {
 }
 
 Texture* ResourceManager::LoadTextureFromMemory(const std::string& id) {
-    if (!resourceTable) {
-        LOG_ERROR("资源表未注册，无法加载 -> " << id);
-        return nullptr;
-    }
+    const EmbeddedResource* res = GetResource(id);
+    if (!res) return nullptr;
 
-    // 1. 在资源表中查找
-    auto it = resourceTable->find(id);
-    if (it == resourceTable->end()) {
-        LOG_ERROR("找不到内嵌资源 -> " << id);
-        return nullptr;
-    }
+    // 数据来自内嵌资源表或 File 来源，统一走内存流
+    const unsigned char* data = res->data;
+    size_t size = res->size;
 
-    // 2. 获取数据指针和大小
-    const unsigned char* data = it->second.data;
-    size_t size = it->second.size;
-
-    // 3. 创建 SDL_RWops (内存流)，用 SDL_image 解码成 surface
+    // 创建 SDL_RWops (内存流)，用 SDL_image 解码成 surface
     SDL_RWops* rw = SDL_RWFromConstMem(data, (int)size);
     if (!rw) {
         LOG_ERROR("SDL_RWFromConstMem 失败: " << SDL_GetError());
@@ -71,19 +75,10 @@ Texture* ResourceManager::LoadTextureFromMemory(const std::string& id) {
 }
 
 std::string ResourceManager::GetText(const std::string& id) {
-    if (!resourceTable) {
-        LOG_ERROR("资源表未注册，无法加载 -> " << id);
-        return "";
-    }
-    auto it = resourceTable->find(id);
-    if (it == resourceTable->end()) {
-        LOG_ERROR("找不到文本资源 -> " << id);
-        return "";
-    }
-
-    // 直接用数据构造 string
-    // 注意：二进制数据可能不包含 \0 结尾，所以必须指定长度
-    return std::string(reinterpret_cast<const char*>(it->second.data), it->second.size);
+    const EmbeddedResource* res = GetResource(id);
+    if (!res) return "";
+    // 二进制数据可能不包含 \0 结尾，必须指定长度
+    return std::string(reinterpret_cast<const char*>(res->data), res->size);
 }
 
 void ResourceManager::Unload(const std::string& id) {
@@ -98,20 +93,36 @@ void ResourceManager::Clear() {
         Renderer::DestroyTexture(pair.second);
     }
     textureCache.clear();
+    fileResources.clear();
+    fileBuffers.clear();
     LOG_INFO("ResourceManager 已清理所有纹理缓存");
 }
 
 const EmbeddedResource* ResourceManager::GetResource(const std::string& id) {
-    if (!resourceTable) {
-        LOG_ERROR("资源表未注册 -> " << id);
-        return nullptr;
+    if (resourceTable) {
+        auto it = resourceTable->find(id);
+        if (it != resourceTable->end()) return &(it->second);
     }
-    auto it = resourceTable->find(id);
-    if (it == resourceTable->end()) {
-        LOG_ERROR("找不到内嵌资源 -> " << id);
-        return nullptr;
+
+    // File 来源 fallback（服务所有资源类型，不是 Audio 特例）
+    if (!basePath.empty()) {
+        auto cached = fileResources.find(id);
+        if (cached != fileResources.end()) return &cached->second;
+
+        std::ifstream f(basePath + "/" + id, std::ios::binary);
+        if (f.good()) {
+            std::vector<unsigned char> buf((std::istreambuf_iterator<char>(f)),
+                                           std::istreambuf_iterator<char>());
+            std::vector<unsigned char>& stored = fileBuffers[id];
+            stored = std::move(buf);
+            fileResources[id] = EmbeddedResource{stored.data(), stored.size()};
+            LOG_INFO("ResourceManager: 从文件加载 -> " << id << " (" << stored.size() << " bytes)");
+            return &fileResources[id];
+        }
     }
-    return &(it->second);
+
+    LOG_ERROR("找不到资源 -> " << id);
+    return nullptr;
 }
 
 void ResourceManager::Draw(Texture* tex, SDL_Rect src, SDL_Rect dest, SDL_RendererFlip flip) {

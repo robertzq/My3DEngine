@@ -102,9 +102,9 @@
         }
       },
       "transitions": [
-        { "trigger": "to_house1", "target": "house1", "spawn": "entrance" },
-        { "trigger": "to_house2", "target": "house2", "spawn": "entrance" },
-        { "trigger": "to_house3", "target": "house3", "spawn": "entrance" }
+        { "trigger": "to_house1", "target": "house1", "spawn": "entrance", "transition": { "type": "page_curl", "duration": 0.9, "curlRadius": 0.14, "curvature": 0.8, "shadowStrength": 0.7, "highlightStrength": 0.35, "backsideDarken": 0.18 } },
+        { "trigger": "to_house2", "target": "house2", "spawn": "entrance", "transition": { "type": "page_curl", "duration": 0.9 } },
+        { "trigger": "to_house3", "target": "house3", "spawn": "entrance", "transition": { "type": "page_curl", "duration": 0.9 } }
       ]
     },
     "house1": {
