@@ -48,7 +48,7 @@ if(WIN32)
             "${CMAKE_SOURCE_DIR}/dependencies/SDL2_image/lib/x64/SDL2_image.dll"
             "${CMAKE_SOURCE_DIR}/dependencies/SDL2_ttf/lib/x64/SDL2_ttf.dll"
             "${CMAKE_SOURCE_DIR}/dependencies/SDL2_mixer/lib/x64/SDL2_mixer.dll"
-            ${CMAKE_BINARY_DIR}
+            $<TARGET_FILE_DIR:MyEngine>
         COMMENT "Copying SDL2 runtime DLLs to output directory"
         VERBATIM
     )
