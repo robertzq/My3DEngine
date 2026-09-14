@@ -47,6 +47,7 @@ add_library(engine STATIC
     src/Audio.cpp
     src/GL.cpp
     src/Shader.cpp
+    src/ShaderManager.cpp
     src/Renderer.cpp
     src/RenderTarget.cpp
     src/PostProcess.cpp

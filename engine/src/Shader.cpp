@@ -79,8 +79,8 @@ void Shader::Use() const {
 int Shader::Uniform(const std::string& name) {
     auto it = uniformCache_.find(name);
     if (it != uniformCache_.end()) return it->second;
+    // 缺失的 uniform 属于“可选”，静默跳过（不刷日志）
     int loc = glGetUniformLocation(program_, name.c_str());
-    if (loc < 0) LOG_WARN("Shader: uniform 不存在 -> " << name);
     uniformCache_[name] = loc;
     return loc;
 }
