@@ -1,4 +1,5 @@
 #include "Engine/SceneManager.h"
+#include "Engine/BehaviorRegistry.h"
 #include "Engine/Config.h"
 #include "Engine/Game.h"
 #include "Engine/Log.h"
@@ -95,14 +96,6 @@ void SceneManager::RequestTransition(const std::string& trigger, const json& run
     LOG_WARN("SceneManager: 未找到触发器对应的转场 -> " << trigger);
 }
 
-void SceneManager::SetPlayer(GameObject* newPlayer) {
-    player = newPlayer;
-    if (player && map) {
-        player->SetWorldWidth(static_cast<float>(map->WidthPx()));
-        player->SetWorldHeight(static_cast<float>(map->HeightPx()));
-    }
-}
-
 SDL_Point SceneManager::SpawnPosition(const std::string& spawn, const json& runtimeParams) const {
     if (runtimeParams.contains("spawn_x") && runtimeParams.contains("spawn_y")) {
         return {runtimeParams["spawn_x"].get<int>(), runtimeParams["spawn_y"].get<int>()};
@@ -116,14 +109,102 @@ SDL_Point SceneManager::SpawnPosition(const std::string& spawn, const json& runt
     return {0, 0};
 }
 
+Entity* SceneManager::Spawn(const std::string& behavior, const std::string& tag, float x, float y,
+                            const json& params, const std::string& id) {
+    EntityDef def;
+    def.id = id;
+    def.behavior = behavior;
+    def.tag = tag;
+    def.x = static_cast<int>(x);
+    def.y = static_cast<int>(y);
+    def.params = params;
+    return SpawnDef(def);
+}
+
+Entity* SceneManager::SpawnDef(const EntityDef& def) {
+    auto entity = std::make_unique<Entity>();
+    entity->id = def.id;
+    entity->type = def.behavior;
+    entity->tag = def.tag;
+    entity->transform.x = static_cast<float>(def.x);
+    entity->transform.y = static_cast<float>(def.y);
+    entity->transform.w = def.w;
+    entity->transform.h = def.h;
+    entity->visible = def.visible;
+
+    if (!def.texture.empty()) entity->sprite.texture = ResourceManager::GetTexture(def.texture);
+    entity->sprite.src = def.src;
+    if (def.hasCollider) {
+        entity->collider.offset = def.collider;
+        entity->collider.enabled = true;
+    }
+
+    if (!def.behavior.empty()) {
+        entity->behavior.reset(BehaviorRegistry::Create(def.behavior));
+        if (entity->behavior) {
+            entity->behavior->self = entity.get();
+            entity->behavior->config = def.params;
+            entity->behavior->OnSpawn(context);
+        } else {
+            LOG_WARN("SceneManager: 未注册的行为 -> " << def.behavior);
+        }
+    }
+
+    Entity* raw = entity.get();
+    if (iterating) pendingInsert.push_back(std::move(entity));
+    else entities.push_back(std::move(entity));
+    return raw;
+}
+
+void SceneManager::Destroy(Entity* entity) {
+    if (entity) entity->alive = false;
+}
+
+std::vector<Entity*> SceneManager::Entities() {
+    std::vector<Entity*> result;
+    result.reserve(entities.size());
+    for (auto& entity : entities) {
+        if (entity->alive) result.push_back(entity.get());
+    }
+    return result;
+}
+
+Entity* SceneManager::FindById(const std::string& id) {
+    for (auto& entity : entities) {
+        if (entity->alive && entity->id == id) return entity.get();
+    }
+    return nullptr;
+}
+
+Entity* SceneManager::FindByTag(const std::string& tag) {
+    for (auto& entity : entities) {
+        if (entity->alive && entity->tag == tag) return entity.get();
+    }
+    return nullptr;
+}
+
 void SceneManager::ClearScene() {
     if (view) view->OnExit();
     if (controller) controller->OnExit();
     view.reset();
     controller.reset();
     map.reset();
-    player = nullptr;
+    entities.clear();
+    pendingInsert.clear();
     current = nullptr;
+}
+
+void SceneManager::FlushPending() {
+    if (pendingInsert.empty()) return;
+    for (auto& entity : pendingInsert) entities.push_back(std::move(entity));
+    pendingInsert.clear();
+}
+
+void SceneManager::RemoveDead() {
+    for (auto it = entities.begin(); it != entities.end();) {
+        if (!it->get()->alive) it = entities.erase(it);
+        else ++it;
+    }
 }
 
 void SceneManager::LoadScene(const std::string& sceneId, const std::string& spawn, const json& runtimeParams) {
@@ -147,10 +228,8 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
         }
     }
 
-    if (map) {
-        Game::camera = {0, 0, EngineConfig::SCREEN_WIDTH, EngineConfig::SCREEN_HEIGHT};
-        Game::cameraX_float = 0.0f;
-    }
+    Game::camera = {0, 0, EngineConfig::SCREEN_WIDTH, EngineConfig::SCREEN_HEIGHT};
+    Game::cameraX_float = 0.0f;
 
     context.game = Game::instance();
     context.manager = this;
@@ -172,15 +251,25 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
         view.reset(SceneRegistry::CreateView(data.view));
         if (!view) LOG_ERROR("SceneManager: 视图未注册 -> " << data.view);
     }
-
     context.controller = controller.get();
+
+    if (data.hasPlayer) {
+        EntityDef playerDef = data.player;
+        SDL_Point point = SpawnPosition(spawn, runtimeParams);
+        playerDef.x = point.x;
+        playerDef.y = point.y;
+        if (playerDef.tag.empty()) playerDef.tag = "player";
+        SpawnDef(playerDef);
+    }
+
+    for (const auto& entityDef : data.entities) {
+        SpawnDef(entityDef);
+    }
+
     if (controller) controller->OnEnter(context);
     if (view) view->OnEnter(context);
 
-    if (player && context.params.contains("spawn_x") && context.params.contains("spawn_y")) {
-        player->SetPos(context.params["spawn_x"].get<float>(), context.params["spawn_y"].get<float>());
-    }
-
+    lastTick = SDL_GetTicks();
     LOG_INFO("SceneManager: 进入场景 " << sceneId << " (spawn=" << spawn << ")");
 }
 
@@ -189,9 +278,11 @@ std::vector<SDL_Rect> SceneManager::Colliders() const {
 }
 
 bool SceneManager::CheckTransitions() {
-    if (!current || !map || !player) return false;
+    if (!current || !map) return false;
+    Entity* player = Player();
+    if (!player) return false;
 
-    SDL_Rect bounds = player->GetBounds();
+    SDL_Rect bounds = player->Bounds();
     for (const auto& transition : current->transitions) {
         if (!transition.automatic) continue;
         for (const auto& rect : map->TriggerRects(transition.trigger)) {
@@ -205,9 +296,10 @@ bool SceneManager::CheckTransitions() {
 }
 
 void SceneManager::FollowPlayer() {
+    Entity* player = Player();
     if (!map || !player) return;
 
-    SDL_Rect bounds = player->GetBounds();
+    SDL_Rect bounds = player->Bounds();
     int targetX = bounds.x - EngineConfig::SCREEN_WIDTH / 2;
     int targetY = bounds.y - EngineConfig::SCREEN_HEIGHT / 2;
     int maxX = map->WidthPx() - EngineConfig::SCREEN_WIDTH;
@@ -226,13 +318,34 @@ void SceneManager::FollowPlayer() {
 }
 
 void SceneManager::HandleEvent(SDL_Event& event) {
+    iterating = true;
+    for (auto& entity : entities) {
+        if (entity->alive && entity->behavior) entity->behavior->HandleEvent(context, event);
+    }
+    iterating = false;
     if (controller) controller->HandleEvent(context, event);
+    FlushPending();
 }
 
 void SceneManager::Update() {
     if (!view) return;
 
+    Uint32 now = SDL_GetTicks();
+    deltaTime = (now - lastTick) / 1000.0f;
+    if (deltaTime > 0.1f) deltaTime = 0.1f;
+    lastTick = now;
+
+    iterating = true;
+    for (auto& entity : entities) {
+        if (entity->alive && entity->behavior) entity->behavior->Update(context, deltaTime);
+    }
+    iterating = false;
+
     if (controller) controller->Update(context);
+
+    FlushPending();
+    RemoveDead();
+
     if (!CheckTransitions()) FollowPlayer();
 
     if (hasPending) {
@@ -241,6 +354,13 @@ void SceneManager::Update() {
         json params = pendingParams;
         hasPending = false;
         LoadScene(scene, spawn, params);
+    }
+}
+
+void SceneManager::DrawWorld() {
+    if (map) map->Draw(Game::renderer, Game::camera);
+    for (auto& entity : entities) {
+        if (entity->alive && entity->visible) entity->Render(Game::renderer, Game::camera);
     }
 }
 

@@ -9,6 +9,7 @@
 ## ✨ 特性
 
 - **数据驱动场景**：`SceneManager` 从 JSON 配置读取场景定义，负责地图加载、出生点、图块触发器与场景切换；`SceneView`（只渲染）与 `SceneController`（逻辑）分离，符合 MVC。
+- **组件化实体**：`Entity`（Transform / Sprite / Collider）+ `Behavior`（按注册名挂载的逻辑），所有物体共用一套实体模型，运行时 `Spawn` / `Destroy`。
 - **通用瓦片地图**：`TileSet` / `TileMap` 支持空格或紧凑格式 `.map`，图块的纹理、阻挡、触发器均由配置决定，不含任何硬编码图块。
 - **场景管理**：基于 `Scene` 基类的状态管理，`SceneFactory` 支持场景自注册与工厂创建（兼容旧用法）。
 - **游戏循环**：`Game` 负责 SDL 初始化、事件分发、更新与渲染，单例访问 `Game::instance()`。
@@ -36,6 +37,9 @@ engine/
 │   ├── SceneController.h   #   控制器基类（游戏逻辑）
 │   ├── SceneContext.h      #   传给 View / Controller 的运行时上下文
 │   ├── SceneRegistry.h     #   View / Controller 自注册工厂
+│   ├── Entity.h            #   通用实体：Transform / Sprite / Collider
+│   ├── Behavior.h          #   行为基类（实体逻辑）
+│   ├── BehaviorRegistry.h  #   行为自注册工厂
 │   ├── Scene.h             #   旧式场景基类（兼容）
 │   ├── SceneFactory.h      #   旧式场景自注册工厂（兼容）
 │   ├── GameObject.h        #   通用游戏对象基类
@@ -260,6 +264,13 @@ std::vector<SDL_Rect> doors = map.TriggerRects("door"); // 所有同名触发器
       "map": "village.map",
       "tileset": "overworld",
       "spawns": { "default": [100, 100], "from_house1": [192, 230] },
+      "player": {
+        "behavior": "Player",           // BehaviorRegistry 注册名
+        "tag": "player",
+        "texture": "player.png",
+        "size": [50, 50],
+        "params": { "frames": 4, "rows": 4, "speed": 4 }
+      },
       "transitions": [
         { "trigger": "to_house1", "target": "house1", "spawn": "entrance" }
       ]
@@ -288,6 +299,7 @@ game.update();                          // 内部：controller.Update -> 触发�
 * `automatic: false` 的转场不会被自动处理，交给游戏 Controller：
   `context.manager->RequestTransition("boss", { {"spawn_x", 100}, {"spawn_y", 200} });`
 * `RequestScene(target, spawn, params)` 可携带运行时参数；`spawn_x` / `spawn_y` 会覆盖配置出生点。
+* `player` 会按 `spawns` 生成并打上 `tag`（供相机/触发器使用）；`entities` 数组可放任意静态实体。
 
 ### 8. `SceneView` / `SceneController` —— MVC 场景脚本
 
@@ -330,6 +342,47 @@ static SceneRegistry::ViewProxy v("VillageView", [] { return new VillageView(); 
 ```
 
 `SceneContext` 提供 `game / manager / controller / map / data / params`。
+
+### 9. `Entity` / `Behavior` —— 组件化实体
+
+所有物体都是同一个 `Entity`（`Transform` + `Sprite` + `Collider` + `tag`），
+行为挂在实体上，引擎用 `BehaviorRegistry` 按注册名创建：
+
+```cpp
+#include "Engine/Entity.h"
+#include "Engine/Behavior.h"
+#include "Engine/BehaviorRegistry.h"
+
+class CollectibleBehavior : public Behavior {
+public:
+    void OnSpawn(SceneContext& ctx) override {
+        self->sprite.texture = ResourceManager::GetTexture("heart.png");
+        self->transform.w = 40;
+        self->transform.h = 32;
+        self->collider.offset = {0, 0, 40, 32};   // 碰撞盒
+        self->collider.enabled = true;
+    }
+    void Update(SceneContext& ctx, float dt) override { /* 每帧逻辑 */ }
+    bool collected = false;
+};
+
+static BehaviorRegistry::Proxy proxy("Collectible", [] { return new CollectibleBehavior(); });
+```
+
+`SceneManager` 负责实体生命周期与统一流程：
+
+```cpp
+Entity* e = ctx.manager->Spawn("GiftBox", "gift", 320, 288);  // 生成并执行 OnSpawn
+ctx.manager->Destroy(e);                                       // 延迟回收
+for (Entity* e : ctx.manager->Entities()) { /* ... */ }
+Entity* player = ctx.manager->Player();                        // tag == "player"
+```
+
+每帧顺序：更新所有 `Behavior` → 跑场景 `SceneController` → 回收死亡实体 → 检查图块触发器 → 相机跟随。
+`SceneView` 里只需 `ctx.manager->DrawWorld()`，再叠加自己的 HUD / 过场。
+
+碰撞直接作用于 `Entity`：`Physics::MoveTopDown(entity, vx, vy, obstacles)`（俯视）、
+`Physics::MovePlatformer(entity, vx, vy, onGround, obstacles)`（横版）。
 
 ---
 
