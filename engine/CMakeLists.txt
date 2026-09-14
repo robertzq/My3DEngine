@@ -54,6 +54,8 @@ add_library(engine STATIC
     src/PageCurl.cpp
     src/MeshPageCurl.cpp
     src/RedBorder.cpp
+    src/UI/UIElement.cpp
+    src/UI/UIPrimitives.cpp
 )
 
 target_include_directories(engine
