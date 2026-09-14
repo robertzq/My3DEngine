@@ -48,6 +48,8 @@ add_library(engine STATIC
     src/GL.cpp
     src/Shader.cpp
     src/Renderer.cpp
+    src/RenderTarget.cpp
+    src/PostProcess.cpp
 )
 
 target_include_directories(engine
