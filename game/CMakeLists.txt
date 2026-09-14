@@ -16,7 +16,7 @@ else()
     message(WARNING "未找到 Python3，请手动运行: python game/tools/embed_assets.py")
 endif()
 
-add_executable(MyEngine
+add_executable(MyEngine WIN32
     src/main.cpp
     src/Behaviors/PlayerBehavior.cpp
     src/Behaviors/GiftBoxBehavior.cpp
@@ -39,3 +39,17 @@ endif()
 
 # 输出到 build/ 根目录，保持 runGame.sh 路径不变
 set_target_properties(MyEngine PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# Auto-copy SDL2 runtime DLLs to the executable output directory (Windows)
+if(WIN32)
+    add_custom_command(TARGET MyEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/dependencies/SDL2/lib/x64/SDL2.dll"
+            "${CMAKE_SOURCE_DIR}/dependencies/SDL2_image/lib/x64/SDL2_image.dll"
+            "${CMAKE_SOURCE_DIR}/dependencies/SDL2_ttf/lib/x64/SDL2_ttf.dll"
+            "${CMAKE_SOURCE_DIR}/dependencies/SDL2_mixer/lib/x64/SDL2_mixer.dll"
+            ${CMAKE_BINARY_DIR}
+        COMMENT "Copying SDL2 runtime DLLs to output directory"
+        VERBATIM
+    )
+endif()
