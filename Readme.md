@@ -250,6 +250,17 @@ ctx.manager->DrawWorld();                                            // 绘制�
 每帧顺序：更新所有 `Behavior` → 跑场景 `SceneController` → 回收死亡实体 → 检查图块触发器 → 相机跟随。
 `automatic: false` 的转场不会被自动处理，交给游戏 Controller 调用 `RequestTransition`。
 
+**生命周期 / ownership 契约：**
+
+* `SceneManager` 拥有当前场景的 `map` / `view` / `controller`（随场景重建）。
+* `SceneManager` 拥有 `entities` / `pendingInsert`；`Entity` 拥有自己的 `Behavior`。
+* `Behavior::self` 是非 owning 指针，指回所属 `Entity`。
+* `SceneContext` 内的 `game/manager/controller/map/data` 均为非 owning，只在当前场景生命周期内有效。
+* `Spawn` / `FindById` / `FindByTag` / `Player` 返回的 `Entity*` 不得跨场景切换或实体销毁后继续持有。
+* `Map()` / `Current()` 的返回值不得跨 `ClearScene` / 场景切换持有。
+* `Sprite.texture` 由 `ResourceManager` 管理，`Entity` 不拥有纹理。
+* `View` / `Controller` / `Behavior` 不应长期缓存 `Entity*` 或 `SceneContext&`，除非明确保证其生命周期。
+
 ### 4. `SceneView` / `SceneController` —— MVC 场景脚本
 
 视图只负责渲染，逻辑放在控制器；两者用 `SceneRegistry` 自注册，注册名与配置里的 `view` / `controller` 对应：
