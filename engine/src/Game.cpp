@@ -107,7 +107,6 @@ void Game::render() {
     }
     PostProcess::ApplyFinal();
 
-
     Renderer::EndFrame();
 }
 

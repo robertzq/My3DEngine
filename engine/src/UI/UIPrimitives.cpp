@@ -84,3 +84,35 @@ void Slider::Render() {
 
     if (focused && enabled) Renderer::DrawRectOutline(box, Modulate(SDL_Color{255, 255, 255, 160}), 1);
 }
+
+// ---------------- DesiredSize ----------------
+
+SDL_Point Label::DesiredSize() const {
+    return TextRenderer::MeasureText(text, fontSize);
+}
+
+SDL_Point Image::DesiredSize() const {
+    if (rect.w > 0 && rect.h > 0) return {rect.w, rect.h};
+    if (texture) return {texture->Width(), texture->Height()};
+    return {rect.w, rect.h};
+}
+
+SDL_Point Button::DesiredSize() const {
+    SDL_Point m = TextRenderer::MeasureText(text, fontSize);
+    int w = rect.w > 0 ? rect.w : m.x + 40;
+    int h = rect.h > 0 ? rect.h : m.y + 20;
+    return {w, h};
+}
+
+SDL_Point Toggle::DesiredSize() const {
+    SDL_Point m = TextRenderer::MeasureText(text, fontSize);
+    int w = rect.w > 0 ? rect.w : m.x + 68 + 24;
+    int h = rect.h > 0 ? rect.h : std::max(m.y, 24) + 12;
+    return {w, h};
+}
+
+SDL_Point Slider::DesiredSize() const {
+    int w = rect.w > 0 ? rect.w : 220;
+    int h = rect.h > 0 ? rect.h : 44;
+    return {w, h};
+}

@@ -13,6 +13,7 @@ public:
     TextAlign hAlign = TextAlign::Left;
     TextVAlign vAlign = TextVAlign::Middle;
     void Render() override;
+    SDL_Point DesiredSize() const override;
 };
 
 // 图片；texture 为非拥有指针（ResourceManager 拥有）。不参与 focus
@@ -23,6 +24,7 @@ public:
     bool flipX = false;
     bool flipY = false;
     void Render() override;
+    SDL_Point DesiredSize() const override;
 };
 
 // 纯色面板 / 背景；不参与 focus
@@ -50,6 +52,7 @@ public:
     bool focused = false;
     bool pressed = false;
     void Render() override;
+    SDL_Point DesiredSize() const override;
 };
 
 // 开关：bool value。focusable（切换输入在后续 Step）
@@ -64,6 +67,7 @@ public:
     SDL_Color offColor{110, 110, 120, 255};
     bool focused = false;
     void Render() override;
+    SDL_Point DesiredSize() const override;
 };
 
 // 滑条：min/max/step/value。focusable（左右调节在后续 Step）
@@ -85,6 +89,7 @@ public:
     void SetValue(float v);
     float Value() const { return value; }
     void Render() override;
+    SDL_Point DesiredSize() const override;
 };
 
 // 占位（仅参与布局，不绘制）
