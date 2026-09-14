@@ -21,6 +21,18 @@ namespace Input {
     // 每帧刷新输入快照（由 Game::update() 调用一次）
     void Update();
 
+    // 输入上下文 / 优先级：
+    // * 名字以 "UI" 开头的 action 视为 UI 动作（UIUp/UIDown/UIConfirm...），其余视为 gameplay 动作。
+    // * Gameplay 上下文只响应 gameplay 动作，Menu 上下文只响应 UI 动作。
+    //   这样菜单打开时按确认键不会同时触发 gameplay 的 Interact/Confirm。
+    // * 默认 Gameplay；UIManager 会在菜单栈非空时切到 Menu（见后续步骤）。
+    enum class InputContext { Gameplay, Menu };
+    void SetContext(InputContext context);
+    InputContext GetContext();
+    bool IsUIAction(const std::string& action);
+    // 当前上下文下该 action 是否被接受（Down/Pressed/Released/Axis 内部都走这个判定）
+    bool ActionAllowed(const std::string& action);
+
     bool Down(const std::string& action);
     bool Pressed(const std::string& action);
     bool Released(const std::string& action);
