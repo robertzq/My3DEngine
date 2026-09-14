@@ -28,6 +28,8 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
     self->sprite.src = {0, 0, frameW, frameH};
     self->collider.offset = {12, 28, self->transform.w - 24, self->transform.h - 28};
     self->collider.enabled = true;
+    self->collider.layer = Layers::Player;
+    self->collider.mask = Layers::World | Layers::Enemy | Layers::Trigger;
 
     self->transform.x -= self->transform.w / 2.0f;
     self->transform.y -= self->transform.h / 2.0f;
