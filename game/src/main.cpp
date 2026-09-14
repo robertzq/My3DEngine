@@ -1,4 +1,5 @@
 #include "Engine/Config.h"
+#include "Engine/Audio.h"
 #include "Engine/Game.h"
 #include "Engine/Log.h"
 #include "Engine/ResourceManager.h"
@@ -9,6 +10,7 @@ int main(int argc, char* argv[]) {
     const int frameDelay = 1000 / EngineConfig::TARGET_FPS;
 
     ResourceManager::SetResourceTable(EMBEDDED_ASSETS);
+    ResourceManager::SetBasePath("game/assets");   // File 来源：大型资源（如 BGM）走磁盘
     ResourceManager::Init();
 
     Game game;
@@ -23,6 +25,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     game.scenes().Start();
+
+    Audio::PlayMusic("forget_me_not.mp3");   // 启动 BGM（经 File 来源，Scene 切换不中断）
 
     while (game.running()) {
         Uint32 frameStart = SDL_GetTicks();
