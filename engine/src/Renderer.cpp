@@ -17,6 +17,9 @@ SDL_GLContext context = nullptr;
 Shader* spriteShader = nullptr;   // non-owning，由 ShaderManager 持有
 unsigned int quadVao = 0;
 unsigned int quadVbo = 0;
+unsigned int meshVao = 0;
+unsigned int meshVbo = 0;
+unsigned int meshEbo = 0;
 Texture whiteTexture;   // 1x1 白色，用于图元绘制
 
 int viewportWidth = 0;
@@ -74,6 +77,35 @@ void EnsureQuad() {
     glBindVertexArray(0);
 }
 
+void EnsureMesh() {
+    if (meshVao != 0) return;
+    glGenVertexArrays(1, &meshVao);
+    glGenBuffers(1, &meshVbo);
+    glGenBuffers(1, &meshEbo);
+    glBindVertexArray(meshVao);
+    glBindBuffer(GL_ARRAY_BUFFER, meshVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshEbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(4 * sizeof(float)));
+    glBindVertexArray(0);
+}
+
+void SetBuiltInUniforms(Shader& shader, const SDL_Color& tint) {
+    const float vw = (float)(viewportWidth > 0 ? viewportWidth : 1);
+    const float vh = (float)(viewportHeight > 0 ? viewportHeight : 1);
+    shader.SetFloat("u_time", static_cast<float>(Time::ElapsedTime()));
+    shader.SetFloat("u_deltaTime", Time::DeltaTime());
+    shader.SetVec2("u_resolution", vw, vh);
+    shader.SetVec2("u_texelSize", 1.0f / vw, 1.0f / vh);
+    shader.SetVec2("u_cameraPosition", (float)Game::camera.x, (float)Game::camera.y);
+    shader.SetVec4("u_tint", tint.r / 255.0f, tint.g / 255.0f, tint.b / 255.0f, tint.a / 255.0f);
+    shader.SetInt("u_texture", 0);
+}
+
 }
 
 void Renderer::SetAttributes() {
@@ -82,6 +114,7 @@ void Renderer::SetAttributes() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 }
 
 bool Renderer::Init(SDL_Window* win) {
@@ -107,6 +140,7 @@ bool Renderer::Init(SDL_Window* win) {
     }
 
     EnsureQuad();
+    EnsureMesh();
 
     // 1x1 白色纹理，用于填充矩形 / 线条
     const unsigned char white[4] = {255, 255, 255, 255};
@@ -128,6 +162,9 @@ bool Renderer::Init(SDL_Window* win) {
 void Renderer::Clean() {
     spriteShader = nullptr;   // Shader 由 ShaderManager 释放
     if (whiteTexture.id_) { glDeleteTextures(1, &whiteTexture.id_); whiteTexture.id_ = 0; }
+    if (meshEbo) { glDeleteBuffers(1, &meshEbo); meshEbo = 0; }
+    if (meshVbo) { glDeleteBuffers(1, &meshVbo); meshVbo = 0; }
+    if (meshVao) { glDeleteVertexArrays(1, &meshVao); meshVao = 0; }
     if (quadVbo) { glDeleteBuffers(1, &quadVbo); quadVbo = 0; }
     if (quadVao) { glDeleteVertexArrays(1, &quadVao); quadVao = 0; }
     if (context) { SDL_GL_DeleteContext(context); context = nullptr; }
@@ -270,8 +307,6 @@ void Renderer::DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL
 
     const float texW = (float)texture->Width();
     const float texH = (float)texture->Height();
-    const float vw = (float)(viewportWidth > 0 ? viewportWidth : 1);
-    const float vh = (float)(viewportHeight > 0 ? viewportHeight : 1);
 
     shader->Use();
 
@@ -281,14 +316,7 @@ void Renderer::DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL
     shader->SetVec2("uFlip", options.flipX ? 1.0f : 0.0f, options.flipY ? 1.0f : 0.0f);
 
     // 内置 uniform
-    shader->SetFloat("u_time", static_cast<float>(Time::ElapsedTime()));
-    shader->SetFloat("u_deltaTime", Time::DeltaTime());
-    shader->SetVec2("u_resolution", vw, vh);
-    shader->SetVec2("u_texelSize", 1.0f / vw, 1.0f / vh);
-    shader->SetVec2("u_cameraPosition", (float)Game::camera.x, (float)Game::camera.y);
-    shader->SetVec4("u_tint", options.tint.r / 255.0f, options.tint.g / 255.0f,
-                    options.tint.b / 255.0f, options.tint.a / 255.0f);
-    shader->SetInt("u_texture", 0);
+    SetBuiltInUniforms(*shader, options.tint);
 
     // effect 实例参数
     if (options.effect) {
@@ -309,6 +337,26 @@ void Renderer::DrawSprite(const Texture* texture, const SDL_Rect& src, const SDL
     glBindTexture(GL_TEXTURE_2D, texture->id_);
     glBindVertexArray(quadVao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+void Renderer::DrawMesh(Shader& shader, const MeshVertex* vertices, int vertexCount,
+                        const unsigned short* indices, int indexCount,
+                        const Texture* texture, const MeshDrawOptions& options) {
+    if (!ready || !vertices || vertexCount <= 0 || !indices || indexCount <= 0) return;
+
+    shader.Use();
+    SetBuiltInUniforms(shader, options.tint);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture && texture->Valid() ? texture->id_ : whiteTexture.id_);
+
+    glBindVertexArray(meshVao);
+    glBindBuffer(GL_ARRAY_BUFFER, meshVbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(vertexCount * (int)sizeof(MeshVertex)), vertices, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshEbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(indexCount * (int)sizeof(unsigned short)), indices, GL_DYNAMIC_DRAW);
+    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_SHORT, (void*)0);
     glBindVertexArray(0);
 }
 
