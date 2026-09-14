@@ -30,6 +30,7 @@ typedef std::ptrdiff_t GLsizeiptr;
 #define GL_UNSIGNED_BYTE       0x1401
 #define GL_FLOAT               0x1406
 #define GL_FALSE               0
+#define GL_TRUE                1
 #define GL_TEXTURE_MAG_FILTER  0x2800
 #define GL_TEXTURE_MIN_FILTER  0x2801
 #define GL_TEXTURE_WRAP_S      0x2802
@@ -42,6 +43,9 @@ typedef std::ptrdiff_t GLsizeiptr;
 #define GL_STATIC_DRAW         0x88E4
 #define GL_DYNAMIC_DRAW        0x88E8
 #define GL_UNSIGNED_SHORT      0x1403
+#define GL_DEPTH_TEST          0x0B71
+#define GL_DEPTH_BUFFER_BIT    0x00000100
+#define GL_LEQUAL              0x0203
 #define GL_FRAMEBUFFER         0x8D40
 #define GL_COLOR_ATTACHMENT0   0x8CE0
 #define GL_FRAMEBUFFER_COMPLETE 0x8CD5
@@ -94,6 +98,8 @@ typedef std::ptrdiff_t GLsizeiptr;
     X(void,   glBlendFunc,             (GLenum, GLenum)) \
     X(void,   glDrawArrays,            (GLenum, GLint, GLsizei)) \
     X(void,   glDrawElements,          (GLenum, GLsizei, GLenum, const void*)) \
+    X(void,   glDepthFunc,             (GLenum)) \
+    X(void,   glDepthMask,             (GLboolean)) \
     X(void,   glReadPixels,            (GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void*)) \
     X(void,   glGenFramebuffers,       (GLsizei, GLuint*)) \
     X(void,   glDeleteFramebuffers,    (GLsizei, const GLuint*)) \

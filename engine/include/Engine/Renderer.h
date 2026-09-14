@@ -14,12 +14,15 @@ struct SpriteDrawOptions {
     bool flipY = false;
 };
 
-// 最小动态 mesh 顶点：pos(像素) + uv(归一化)。仅服务 Page Curl 等最小需求。
+// 最小动态 mesh 顶点：pos(像素) + uv(归一化) + 两个 shader 自定义附加量。
+// 仅服务 Page Curl 等最小需求；不做通用 geometry system。
 struct MeshVertex {
     float x = 0.0f;
     float y = 0.0f;
     float u = 0.0f;
     float v = 0.0f;
+    float e0 = 0.0f;   // PageCurl: front=shadow factor / curl=φ/π / flap=1
+    float e1 = 0.0f;   // PageCurl: 0=front 1=curl 2=flap
 };
 
 struct MeshDrawOptions {
