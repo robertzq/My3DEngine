@@ -27,7 +27,7 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 - **游戏循环**：`Game` 负责 SDL 初始化、事件分发、更新与渲染，单例访问 `Game::instance()`。
 - **统一帧时间**：`Time` 提供每帧 `DeltaTime` / `UnscaledDeltaTime` / `ElapsedTime` / `FrameCount` 与 `TimeScale`，对异常大 dt 做 clamp。
 - **资源管理**：`ResourceManager` 从内存资源表加载并缓存纹理 / 文本，支持资源表注入。
-- **物理碰撞**：AABB 碰撞检测，横版与俯视角两套、作用于 `Entity` 的移动解析。
+- **物理碰撞**：AABB 查询 / 解析分离，`Collider` 带 `layer`/`mask`/`isTrigger`，支持实体触发，横版与俯视角两套移动解析。
 - **文字渲染**：`TextRenderer` 基于 SDL_ttf，带纹理缓存与抗锯齿。
 - **输入**：`Input` 键盘状态轮询 + action 映射（`Down`/`Pressed`/`Released`/`Axis`），gameplay 不直接依赖 `SDL_SCANCODE`。
 - **日志**：`Log` 分级日志宏 `LOG_DEBUG/INFO/WARN/ERROR`。
@@ -360,21 +360,45 @@ const std::vector<TileSprite>& overlays = map.Overlays();  // 参与 Y 排序的
 
 > overlay 图块与实体的排序绘制统一由 `SceneManager::DrawWorld()` 负责，不要手动分别画两层。
 
-### 7. `Physics` —— AABB 碰撞
+### 7. `Physics` —— AABB 碰撞（查询 / 解析分离）
+
+职责分三类，互不混淆：
+
+* **Collision Query**：只查询，不改动。
+* **Collision Resolution**：只对世界 solid 矩形（`TileMap::Colliders()`）做移动解析。
+* **Trigger**：`Collider::isTrigger`，只做重叠查询，不参与移动解析；瓦片触发器仍由 `TileSet` 的 `"trigger"` + `SceneManager` 转场处理。
 
 ```cpp
 #include "Engine/Physics.h"
 
-bool hit = Physics::CheckCollision(rectA, rectB);          // 基础矩形相交查询
+// Query
+bool hit = Physics::CheckCollision(rectA, rectB);        // 原始矩形相交
+bool touchGift = Physics::Overlap(*player, *gift);       // 实体 vs 实体（含 layer/mask 过滤）
+bool inZone    = Physics::Overlap(*player, tileRect);    // 实体 vs 任意矩形（瓦片触发器/区域）
 
-// 俯视角：按速度把实体推出障碍物
-Physics::MoveTopDown(*entity, vx, vy, ctx.manager->Colliders());
-
-// 横版：处理落地 / 顶头 / 撞墙，并写回 velY 与 onGround
-Physics::MovePlatformer(*entity, vx, velY, onGround, ctx.manager->Colliders());
+// Resolution：stepX/stepY 是「本帧位移」，不是速度
+Physics::MoveTopDown(*entity, stepX, stepY, ctx.manager->Colliders());
+Physics::MovePlatformer(*entity, stepX, stepY, onGround, ctx.manager->Colliders());
 ```
 
-移动解析作用于 `Entity` 与地图阻挡格（`TileMap::Colliders()`）。实体之间的碰撞用 `CheckCollision(entityA->Bounds(), entityB->Bounds())` 查询。
+`Collider` 字段：`offset` / `enabled` / `isTrigger` / `layer` / `mask`。
+`layer` = 自己属于哪层，`mask` = 自己关心哪些层；`Physics::ShouldCollide(a, b)` 判断两者是否互相作用。
+预定义层：`Layers::Player / Enemy / World / Projectile / Trigger`（bit flag）。
+
+```cpp
+// 玩家：物理上被世界阻挡，同时能感知敌人与触发器
+self->collider.enabled = true;
+self->collider.layer = Layers::Player;
+self->collider.mask  = Layers::World | Layers::Enemy | Layers::Trigger;
+
+// 可拾取物 / 礼物盒：触发器，只对玩家生效
+self->collider.enabled = true;
+self->collider.isTrigger = true;
+self->collider.layer = Layers::Trigger;
+self->collider.mask  = Layers::Player;
+```
+
+移动解析作用于 `Entity` 与地图阻挡格；实体之间目前只做重叠查询（无刚体动力学）。
 
 ### 8. `ResourceManager` —— 资源注入
 
