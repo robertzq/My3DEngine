@@ -2,6 +2,7 @@
 #include "Engine/json.hpp"
 #include "Engine/UI/UIAction.h"
 #include <cstddef>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -40,5 +41,14 @@ namespace UIManager {
     std::vector<UIAction> ConsumeActions();
     const std::vector<UIAction>& PendingActions();
 
+    // 可选动作回调（避免全局 Event Bus）：注册后 DispatchActions 会消费并回调。
+    using UIActionHandler = std::function<void(const UIAction&)>;
+    void SetActionHandler(UIActionHandler handler);
+    void ClearActionHandler();
+    void DispatchActions();
+
     bool Active();                                // == !Empty()（不要用它当 pause 语义）
+    // 暂停语义：由每个菜单定义的 pause 模式决定（none/gameplay/full）
+    bool ShouldPauseGameplay();
+    bool ShouldPauseAll();
 }
