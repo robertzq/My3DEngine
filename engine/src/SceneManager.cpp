@@ -126,7 +126,7 @@ Entity* SceneManager::Spawn(const std::string& behavior, const std::string& tag,
 Entity* SceneManager::SpawnDef(const EntityDef& def) {
     auto entity = std::make_unique<Entity>();
     entity->id = def.id;
-    entity->type = def.behavior;
+    entity->behaviorName = def.behavior;
     entity->tag = def.tag;
     entity->transform.x = static_cast<float>(def.x);
     entity->transform.y = static_cast<float>(def.y);

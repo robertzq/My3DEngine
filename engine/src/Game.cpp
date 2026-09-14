@@ -42,20 +42,6 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
     }
 }
 
-void Game::ChangeScene(Scene* newScene) {
-    // 1. 如果当前有场景，先清理退出
-    if (currentScene != nullptr) {
-        currentScene->OnExit();
-        delete currentScene;
-    }
-
-    // 2. 切换并进入新场景
-    currentScene = newScene;
-    if (currentScene != nullptr) {
-        currentScene->OnEnter();
-    }
-}
-
 void Game::handleEvents() {
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -63,31 +49,23 @@ void Game::handleEvents() {
                 isRunning = false;
                 break;
             default:
-                // 优先交给数据驱动的场景管理器，其次才是旧式 Scene
-                if (sceneManager.Active()) sceneManager.HandleEvent(event);
-                else if (currentScene) currentScene->HandleEvents(event);
+                sceneManager.HandleEvent(event);
                 break;
         }
     }
 }
 
 void Game::update() {
-    if (sceneManager.Active()) sceneManager.Update();
-    else if (currentScene) currentScene->Update();
+    sceneManager.Update();
 }
 
 void Game::render() {
     SDL_RenderClear(renderer);
-    if (sceneManager.Active()) sceneManager.Render();
-    else if (currentScene) currentScene->Render();
+    sceneManager.Render();
     SDL_RenderPresent(renderer);
 }
 
 void Game::clean() {
-    if (currentScene) {
-        currentScene->OnExit();
-        delete currentScene;
-    }
     ResourceManager::Clean();
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);

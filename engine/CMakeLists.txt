@@ -32,7 +32,6 @@ endif()
 # --- 引擎静态库 ---
 add_library(engine STATIC
     src/Game.cpp
-    src/GameObject.cpp
     src/ResourceManager.cpp
     src/TextRenderer.cpp
     src/Physics.cpp
