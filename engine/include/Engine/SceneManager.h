@@ -71,8 +71,6 @@ private:
     std::vector<std::unique_ptr<Entity>> entities;
     std::vector<std::unique_ptr<Entity>> pendingInsert;
     bool iterating = false;
-    float deltaTime = 0.0f;
-    Uint32 lastTick = 0;
 
     bool hasPending = false;
     std::string pendingScene;

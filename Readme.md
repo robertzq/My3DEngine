@@ -24,6 +24,7 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 - **Y 轴深度排序**：地图分 `ground` / `overlay` 两层，`overlay` 图块与实体按脚底 Y 统一排序绘制。
 - **通用瓦片地图**：`TileSet` / `TileMap` 支持空格或紧凑格式 `.map`，图块的纹理、阻挡、overlay、触发器均由配置决定。
 - **游戏循环**：`Game` 负责 SDL 初始化、事件分发、更新与渲染，单例访问 `Game::instance()`。
+- **统一帧时间**：`Time` 提供每帧 `DeltaTime` / `UnscaledDeltaTime` / `ElapsedTime` / `FrameCount` 与 `TimeScale`，对异常大 dt 做 clamp。
 - **资源管理**：`ResourceManager` 从内存资源表加载并缓存纹理 / 文本，支持资源表注入。
 - **物理碰撞**：AABB 碰撞检测，横版与俯视角两套、作用于 `Entity` 的移动解析。
 - **文字渲染**：`TextRenderer` 基于 SDL_ttf，带纹理缓存与抗锯齿。
@@ -144,6 +145,19 @@ game.clean();
 ```
 
 常用成员：`Game::renderer`（SDL 渲染器）、`Game::camera`（摄像机矩形）、`Game::event`（当前事件）、`Game::instance()`（单例）、`game.scenes()`（数据驱动的 `SceneManager`）。
+
+`game.update()` 内部先推进帧时钟再更新场景；`SceneManager` 会把本帧 `DeltaTime` 传给每个 `Behavior::Update(ctx, dt)`：
+
+```cpp
+#include "Engine/Time.h"
+
+float dt = Time::DeltaTime();          // 本帧时间，受 TimeScale 影响（移动/动画用）
+float raw = Time::UnscaledDeltaTime(); // 真实帧时间（UI / 暂停菜单用）
+double t  = Time::ElapsedTime();       // 累计游戏时间（秒）
+Time::SetTimeScale(0.0f);              // 暂停；恢复用 1.0f
+```
+
+移动速度使用「像素/秒 × dt」表达，保证不同帧率下速度一致。
 
 `handleEvents` / `update` / `render` 全部委托给 `game.scenes()`；场景尚未 `Start()` 时 `SceneManager::Update/Render` 会直接返回。
 

@@ -38,6 +38,7 @@ add_library(engine STATIC
     src/TileMap.cpp
     src/SceneManager.cpp
     src/Entity.cpp
+    src/Time.cpp
 )
 
 target_include_directories(engine
