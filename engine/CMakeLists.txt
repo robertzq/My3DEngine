@@ -53,6 +53,7 @@ add_library(engine STATIC
     src/PostProcess.cpp
     src/PageCurl.cpp
     src/MeshPageCurl.cpp
+    src/RedBorder.cpp
 )
 
 target_include_directories(engine
