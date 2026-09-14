@@ -11,6 +11,9 @@ void CollectibleBehavior::OnSpawn(SceneContext& context) {
 
     self->collider.offset = {0, 0, self->transform.w, self->transform.h};
     self->collider.enabled = true;
+    self->collider.isTrigger = true;
+    self->collider.layer = Layers::Trigger;
+    self->collider.mask = Layers::Player;
 }
 
 static BehaviorRegistry::Proxy proxy_collectible("Collectible", []() {

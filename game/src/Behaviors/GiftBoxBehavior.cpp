@@ -12,6 +12,9 @@ void GiftBoxBehavior::OnSpawn(SceneContext& context) {
 
     self->collider.offset = {0, 0, self->transform.w, self->transform.h};
     self->collider.enabled = true;
+    self->collider.isTrigger = true;
+    self->collider.layer = Layers::Trigger;
+    self->collider.mask = Layers::Player;
 }
 
 void GiftBoxBehavior::Open() {

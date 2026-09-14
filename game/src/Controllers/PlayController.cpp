@@ -25,12 +25,12 @@ void PlayController::Update(SceneContext& context) {
         if (entity == player) continue;
 
         if (auto* collectible = dynamic_cast<CollectibleBehavior*>(entity->behavior.get())) {
-            if (!collectible->collected && Physics::CheckCollision(player->Bounds(), entity->Bounds())) {
+            if (!collectible->collected && Physics::Overlap(*player, *entity)) {
                 collectible->collected = true;
                 context.manager->Destroy(entity);
             }
         } else if (auto* gift = dynamic_cast<GiftBoxBehavior*>(entity->behavior.get())) {
-            if (!gift->IsOpened() && Physics::CheckCollision(player->Bounds(), entity->Bounds())) {
+            if (!gift->IsOpened() && Physics::Overlap(*player, *entity)) {
                 gift->Open();
             }
         }

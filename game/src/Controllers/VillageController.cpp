@@ -55,7 +55,7 @@ void VillageController::Update(SceneContext& context) {
     if (state == VillageState::Playing) {
         if (context.map) {
             for (const auto& zone : context.map->TilesWithId(17)) {
-                if (Physics::CheckCollision(player->Bounds(), zone)) {
+                if (Physics::Overlap(*player, zone)) {
                     json params;
                     params["return_scene"] = mapId;
                     params["spawn_x"] = player->Bounds().x;
@@ -68,7 +68,7 @@ void VillageController::Update(SceneContext& context) {
 
         if (mapId == "village") {
             SDL_Rect lake = {716, 460, 200, 168};
-            if (Physics::CheckCollision(player->Bounds(), lake)) {
+            if (Physics::Overlap(*player, lake)) {
                 StartScan(context);
                 return;
             }
@@ -77,7 +77,7 @@ void VillageController::Update(SceneContext& context) {
         for (Entity* entity : context.manager->Entities()) {
             auto* gift = dynamic_cast<GiftBoxBehavior*>(entity->behavior.get());
             if (!gift || gift->IsOpened()) continue;
-            if (Physics::CheckCollision(player->Bounds(), entity->Bounds())) {
+            if (Physics::Overlap(*player, *entity)) {
                 LOG_INFO("触碰礼物盒！生日快乐！");
                 gift->Open();
                 if (PlayerBehavior* behavior = PlayerBehaviorOf(context)) behavior->SetInputEnabled(false);

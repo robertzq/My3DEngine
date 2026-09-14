@@ -34,6 +34,8 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
         self->collider.offset = {15, 20, self->transform.w - 30, self->transform.h - 20};
     }
     self->collider.enabled = true;
+    self->collider.layer = Layers::Player;
+    self->collider.mask = Layers::World | Layers::Enemy | Layers::Trigger;
 }
 
 void PlayerBehavior::Update(SceneContext& context, float deltaTime) {
