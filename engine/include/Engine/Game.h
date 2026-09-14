@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Engine/Scene.h"
 #include "Engine/Config.h"
+#include "Engine/SceneManager.h"
 
 // 引擎核心：负责 SDL 初始化、主循环、场景管理。
 // 不包含任何游戏特定逻辑（关卡序列、游戏状态、字体等由游戏侧负责）。
@@ -27,13 +28,17 @@ public:
     static SDL_Rect camera;
     static float cameraX_float;
 
-    // 切换场景（引擎负责场景所有权与生命周期）
+    // 数据驱动的场景管理器（引擎侧负责地图加载、转场、相机）
+    SceneManager& scenes() { return sceneManager; }
+
+    // 切换场景（旧式 Scene 基类，保留兼容）
     void ChangeScene(Scene* newScene);
 
 private:
     bool isRunning;
     SDL_Window* window;
     Scene* currentScene = nullptr;
+    SceneManager sceneManager;
 
     static Game* s_instance;
 };

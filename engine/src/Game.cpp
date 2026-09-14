@@ -63,20 +63,23 @@ void Game::handleEvents() {
                 isRunning = false;
                 break;
             default:
-                // 把事件传给当前场景处理
-                if (currentScene) currentScene->HandleEvents(event);
+                // 优先交给数据驱动的场景管理器，其次才是旧式 Scene
+                if (sceneManager.Active()) sceneManager.HandleEvent(event);
+                else if (currentScene) currentScene->HandleEvents(event);
                 break;
         }
     }
 }
 
 void Game::update() {
-    if (currentScene) currentScene->Update();
+    if (sceneManager.Active()) sceneManager.Update();
+    else if (currentScene) currentScene->Update();
 }
 
 void Game::render() {
     SDL_RenderClear(renderer);
-    if (currentScene) currentScene->Render();
+    if (sceneManager.Active()) sceneManager.Render();
+    else if (currentScene) currentScene->Render();
     SDL_RenderPresent(renderer);
 }
 
