@@ -1,6 +1,7 @@
 #include "Engine/TileMap.h"
 #include "Engine/Config.h"
 #include "Engine/Log.h"
+#include "Engine/Renderer.h"
 #include "Engine/ResourceManager.h"
 #include <sstream>
 
@@ -45,7 +46,7 @@ bool TileMap::Load(const std::string& mapResourceId, const TileSet& tileSet) {
     textures.clear();
     for (const auto& entry : tileSet.tiles) {
         if (!entry.second.texture.empty()) {
-            SDL_Texture* tex = ResourceManager::GetTexture(entry.second.texture);
+            Texture* tex = ResourceManager::GetTexture(entry.second.texture);
             if (tex) textures[entry.first] = tex;
         }
     }
@@ -80,7 +81,7 @@ void TileMap::RebuildMetadata() {
     }
 }
 
-void TileMap::DrawLayer(SDL_Renderer* renderer, const SDL_Rect& camera, bool overlayLayer) const {
+void TileMap::DrawLayer(const SDL_Rect& camera, bool overlayLayer) const {
     for (int row = 0; row < static_cast<int>(data.size()); ++row) {
         for (int col = 0; col < static_cast<int>(data[row].size()); ++col) {
             int id = data[row][col];
@@ -92,17 +93,17 @@ void TileMap::DrawLayer(SDL_Renderer* renderer, const SDL_Rect& camera, bool ove
             SDL_Rect dest = {col * tileSize - camera.x, row * tileSize - camera.y, tileSize, tileSize};
             if (dest.x < -tileSize || dest.x > camera.w || dest.y < -tileSize || dest.y > camera.h) continue;
 
-            SDL_RenderCopy(renderer, texIt->second, nullptr, &dest);
+            Renderer::DrawSprite(texIt->second, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
         }
     }
 }
 
-void TileMap::Draw(SDL_Renderer* renderer, const SDL_Rect& camera) const {
-    DrawGround(renderer, camera);
+void TileMap::Draw(const SDL_Rect& camera) const {
+    DrawGround(camera);
 }
 
-void TileMap::DrawGround(SDL_Renderer* renderer, const SDL_Rect& camera) const {
-    DrawLayer(renderer, camera, false);
+void TileMap::DrawGround(const SDL_Rect& camera) const {
+    DrawLayer(camera, false);
 }
 
 std::vector<SDL_Rect> TileMap::TilesWithId(int id) const {

@@ -2,6 +2,7 @@
 #include "Behaviors/GiftBoxBehavior.h"
 #include "Engine/Entity.h"
 #include "Engine/Game.h"
+#include "Engine/Renderer.h"
 #include "Engine/SceneManager.h"
 #include "Engine/TextRenderer.h"
 
@@ -18,7 +19,7 @@ void DrawGiftBanners(SceneContext& context) {
         banner.w = 400;
         banner.h = 100;
 
-        SDL_RenderCopy(Game::renderer, gift->bannerTexture, nullptr, &banner);
+        Renderer::DrawSprite(gift->bannerTexture, SDL_Rect{0, 0, 0, 0}, banner, SDL_FLIP_NONE);
 
         if (SDL_GetTicks() - gift->openTime > 2000) {
             SDL_Color color = ((SDL_GetTicks() / 500) % 2 == 0)

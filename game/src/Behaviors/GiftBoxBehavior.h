@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include "Engine/Behavior.h"
 
+class Texture;
+
 class GiftBoxBehavior : public Behavior {
 public:
     void OnSpawn(SceneContext& context) override;
@@ -11,7 +13,7 @@ public:
     void CloseBanner() { bannerDismissed = true; }
     bool IsBannerClosed() const { return bannerDismissed; }
 
-    SDL_Texture* bannerTexture = nullptr;
+    Texture* bannerTexture = nullptr;
     Uint32 openTime = 0;
 
 private:

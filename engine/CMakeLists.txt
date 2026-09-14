@@ -45,6 +45,9 @@ add_library(engine STATIC
     src/Input.cpp
     src/Animator.cpp
     src/Audio.cpp
+    src/GL.cpp
+    src/Shader.cpp
+    src/Renderer.cpp
 )
 
 target_include_directories(engine

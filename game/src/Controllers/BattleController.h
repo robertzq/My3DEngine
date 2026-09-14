@@ -4,6 +4,8 @@
 #include <vector>
 #include "Engine/SceneController.h"
 
+class Texture;
+
 struct Gift {
     std::string name;
     int battery = 0;
@@ -21,11 +23,11 @@ public:
     void OnExit() override;
     void Update(SceneContext& context) override;
 
-    SDL_Texture* bgTexture = nullptr;
-    SDL_Texture* enemyTexture = nullptr;
-    SDL_Texture* playerTexture = nullptr;
-    SDL_Texture* uiBoxTexture = nullptr;
-    SDL_Texture* cursorTexture = nullptr;
+    Texture* bgTexture = nullptr;
+    Texture* enemyTexture = nullptr;
+    Texture* playerTexture = nullptr;
+    Texture* uiBoxTexture = nullptr;
+    Texture* cursorTexture = nullptr;
 
     enum BattleState {
         PLAYER_TURN,

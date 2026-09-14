@@ -6,6 +6,7 @@
 #include "Engine/Physics.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/SceneManager.h"
+#include "Engine/Texture.h"
 
 void PlayerBehavior::OnSpawn(SceneContext& context) {
     std::string texture = config.value("texture", "rpgPlayer.png");
@@ -17,8 +18,8 @@ void PlayerBehavior::OnSpawn(SceneContext& context) {
     gravity = config.value("gravity", 1800.0f);
     platformer = config.value("platformer", false);
 
-    int texW = 0, texH = 0;
-    if (self->sprite.texture) SDL_QueryTexture(self->sprite.texture, nullptr, nullptr, &texW, &texH);
+    int texW = self->sprite.texture ? self->sprite.texture->Width() : 0;
+    int texH = self->sprite.texture ? self->sprite.texture->Height() : 0;
     frameW = frames > 0 ? texW / frames : texW;
     frameH = rows > 0 ? texH / rows : texH;
     self->sprite.src = {0, 0, frameW, frameH};

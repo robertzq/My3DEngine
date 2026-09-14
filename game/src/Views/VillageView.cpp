@@ -2,10 +2,12 @@
 #include <cmath>
 #include "Engine/Entity.h"
 #include "Engine/Game.h"
+#include "Engine/Renderer.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/SceneManager.h"
 #include "Engine/SceneRegistry.h"
 #include "Engine/TextRenderer.h"
+#include "Engine/Texture.h"
 #include "Views/GiftBanner.h"
 
 void VillageView::OnEnter(SceneContext& context) {
@@ -19,22 +21,19 @@ void VillageView::DrawText(const std::string& text, int x, int y, SDL_Color colo
 void VillageView::DrawCutscene(SceneContext& context) {
     if (!controller) return;
 
-    SDL_SetRenderDrawBlendMode(Game::renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(Game::renderer, 0, 20, 0, 220);
     SDL_Rect screen = {0, 0, 800, 600};
-    SDL_RenderFillRect(Game::renderer, &screen);
+    Renderer::DrawRect(screen, {0, 20, 0, 220});
 
     Entity* player = context.manager->Player();
     if (player) {
         SDL_Rect pRect = player->Bounds();
         SDL_Rect scanBox = {pRect.x - Game::camera.x - 20, pRect.y - Game::camera.y - 30, pRect.w + 40, pRect.h + 50};
-        SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
-        SDL_RenderDrawRect(Game::renderer, &scanBox);
+        Renderer::DrawRectOutline(scanBox, {0, 255, 0, 255});
 
         Uint32 ticks = SDL_GetTicks();
         int scanOffset = static_cast<int>(sin(ticks / 200.0f) * (scanBox.h / 2));
         int lineY = scanBox.y + scanBox.h / 2 + scanOffset;
-        SDL_RenderDrawLine(Game::renderer, scanBox.x, lineY, scanBox.x + scanBox.w, lineY);
+        Renderer::DrawLine(scanBox.x, lineY, scanBox.x + scanBox.w, lineY, {0, 255, 0, 255});
     }
 
     int textY = 100;
@@ -50,10 +49,8 @@ void VillageView::DrawCutscene(SceneContext& context) {
 void VillageView::DrawWordCloud(SceneContext& context) {
     if (!controller) return;
 
-    SDL_SetRenderDrawBlendMode(Game::renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 200);
     SDL_Rect screen = {0, 0, 800, 600};
-    SDL_RenderFillRect(Game::renderer, &screen);
+    Renderer::DrawRect(screen, {0, 0, 0, 200});
 
     int cloudAlpha = 255;
     int finalAlpha = 0;
@@ -78,11 +75,11 @@ void VillageView::DrawWordCloud(SceneContext& context) {
     }
 
     if (finalAlpha > 0) {
-        SDL_Texture* heart = ResourceManager::GetTexture("heart.png");
+        Texture* heart = ResourceManager::GetTexture("heart.png");
         if (heart) {
-            SDL_SetTextureAlphaMod(heart, static_cast<Uint8>(finalAlpha));
             SDL_Rect heartRect = {300, 170, 200, 200};
-            SDL_RenderCopy(Game::renderer, heart, nullptr, &heartRect);
+            Renderer::DrawSprite(heart, SDL_Rect{0, 0, 0, 0}, heartRect, SDL_FLIP_NONE,
+                                 {255, 255, 255, static_cast<Uint8>(finalAlpha)});
         }
         DrawText("可爱美丽聪明的拉", 250, 400, {255, 215, 0, static_cast<Uint8>(finalAlpha)});
         DrawText("Verified by Zhao", 550, 520, {200, 200, 200, static_cast<Uint8>(finalAlpha)});
