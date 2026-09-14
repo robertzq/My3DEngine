@@ -3,6 +3,7 @@
 #include "Engine/TextRenderer.h"
 #include "Engine/Renderer.h"
 #include "Engine/PostProcess.h"
+#include "Engine/MeshPageCurl.h"
 #include "Engine/ShaderManager.h"
 #include "Engine/Log.h"
 #include "Engine/Time.h"
@@ -53,6 +54,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
             return;
         }
         PostProcess::Init();
+        MeshPageCurl::Init();
 
         isRunning = true;
         Time::Reset();
