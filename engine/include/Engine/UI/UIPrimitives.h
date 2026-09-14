@@ -51,9 +51,12 @@ public:
     SDL_Color disabledColor{60, 60, 60, 160};
     bool focused = false;
     bool pressed = false;
+    bool activated = false;           // 本帧被 Activate()；由上层 ConsumeActivated() 读取
     void Render() override;
     SDL_Point DesiredSize() const override;
     void SetFocused(bool f) override { focused = f; }
+    void Activate() override { activated = true; }
+    bool ConsumeActivated() { bool a = activated; activated = false; return a; }
 };
 
 // 开关：bool value。focusable（切换输入在后续 Step）
@@ -70,6 +73,8 @@ public:
     void Render() override;
     SDL_Point DesiredSize() const override;
     void SetFocused(bool f) override { focused = f; }
+    void Activate() override { value = !value; }
+    void Adjust(int dir) override { if (dir != 0) value = dir > 0; }
 };
 
 // 滑条：min/max/step/value。focusable（左右调节在后续 Step）
@@ -93,6 +98,8 @@ public:
     void Render() override;
     SDL_Point DesiredSize() const override;
     void SetFocused(bool f) override { focused = f; }
+    void Adjust(int dir) override;              // value += dir * step（clamp）
+    bool RepeatableAdjust() const override { return true; }
 };
 
 // 占位（仅参与布局，不绘制）
