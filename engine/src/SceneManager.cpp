@@ -486,9 +486,8 @@ void SceneManager::RenderTransition(int width, int height) {
 
     float t = transitionDuration > 0.0f ? transitionElapsed / transitionDuration : 1.0f;
     t = std::min(std::max(t, 0.0f), 1.0f);
-    // easeInOutCubic 只作用于 progress 时间曲线；折痕几何仍由 Bézier 决定
-    float e = (t < 0.5f) ? (4.0f * t * t * t)
-                         : (1.0f - std::pow(-2.0f * t + 2.0f, 3.0f) / 2.0f);
+    // easeOutCubic：立刻起步、结尾自然收，避免开头“停顿感”。折痕几何仍由 Bézier 决定。
+    float e = 1.0f - std::pow(1.0f - t, 3.0f);
     transitionParams.progress = e;
 
     const Texture* newScene = PostProcess::WorldTexture();

@@ -165,11 +165,8 @@ void MeshPageCurl::Render(const Texture* pageTexture, const Texture* backTexture
     const float perpX = -dy, perpY = dx;
     const float diag = std::sqrt(W * W + H * H);
 
-    float sp;
-    if (params.progress < 0.2f) sp = 0.15f * (params.progress / 0.2f) * (params.progress / 0.2f);
-    else if (params.progress < 0.8f) sp = 0.15f + 0.70f * ((params.progress - 0.2f) / 0.6f);
-    else sp = 0.85f + 0.15f * ((params.progress - 0.8f) / 0.2f);
-    sp = std::min(std::max(sp, 0.0f), 1.0f);
+    // 折痕推进：随 progress 连续推进（不做长时间“抬角停顿”），时间曲线交给 easing
+    float sp = std::min(std::max(params.progress, 0.0f), 1.0f);
 
     Vec2 base{params.originX * W + dx * sp * diag, params.originY * H + dy * sp * diag};
     if (params.dragX != params.originX || params.dragY != params.originY) {
