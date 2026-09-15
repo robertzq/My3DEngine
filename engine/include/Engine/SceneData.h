@@ -87,6 +87,8 @@ struct SceneData {
     std::string controller;
     std::string map;
     std::string tileset;
+    std::string projectionMode;
+    float projectionScale = 1.0f;
     std::map<std::string, SpawnPoint> spawns;
     std::vector<SceneTransition> transitions;
     std::vector<EntityDef> entities;
@@ -101,6 +103,8 @@ struct SceneData {
         data.controller = j.value("controller", "");
         data.map = j.value("map", "");
         data.tileset = j.value("tileset", "");
+        data.projectionMode = j.value("projection", "");
+        data.projectionScale = j.value("projection_scale", 1.0f);
         data.params = j.value("params", json::object());
 
         if (j.contains("spawns")) {

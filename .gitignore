@@ -11,3 +11,13 @@ build/
 # å¿½ç•¥ C++ ç¼–è¯‘äº§ç”Ÿçš„ä¸­é—´æ–‡ä»¶
 *.o
 *.exe
+
+
+# ±¾»úµ÷ÊÔ²ÐÁô£¨²»Ìá½»£©
+.vs/
+build-*/
+dependencies/
+game/
+src/
+examples/build/
+*.log

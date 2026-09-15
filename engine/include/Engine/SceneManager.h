@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "Engine/Entity.h"
+#include "Engine/Projection.h"
 #include "Engine/MeshPageCurl.h"
 #include "Engine/SceneContext.h"
 #include "Engine/SceneData.h"
@@ -56,6 +57,7 @@ public:
     void Update();
     void Render();
     void DrawWorld();
+    void DrawFootShadow(int cx, int cy, int entW, float scale);   // 等距脚下椭圆阴影
 
     TileMap* Map() { return map.get(); }
     const SceneData* Current() const { return current; }
@@ -81,6 +83,8 @@ private:
     std::string initialSpawn = "default";
 
     const SceneData* current = nullptr;
+    // 当前投影模式（等距时用于 TileMap/Entity 渲染定位）
+    Projection projection;
     std::unique_ptr<TileMap> map;
     std::unique_ptr<SceneView> view;
     std::unique_ptr<SceneController> controller;

@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "Engine/Projection.h"
 #include "Engine/TileSet.h"
 
 class Texture;
@@ -20,6 +21,8 @@ public:
 
     void Draw(const SDL_Rect& camera) const;
     void DrawGround(const SDL_Rect& camera) const;
+    // 斜等距底面：按 Projection 把每个地面格画成菱形。
+    void DrawGroundIso(const class Projection& proj, const SDL_Rect& camera) const;
 
     const std::vector<SDL_Rect>& Colliders() const { return colliders; }
     std::vector<SDL_Rect> TilesWithId(int id) const;

@@ -1,4 +1,5 @@
 #include "Engine/SceneManager.h"
+#include <cstdio>
 #include <algorithm>
 #include "Engine/BehaviorRegistry.h"
 #include "Engine/Config.h"
@@ -312,6 +313,10 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
     context.game = Game::instance();
     context.manager = this;
     context.data = &data;
+    if (data.projectionMode == "iso") { projection.mode = ProjectionMode::Iso; }
+    else { projection.mode = ProjectionMode::Ortho; }
+    projection.view.scale = data.projectionScale;
+    context.projection = projection;
     context.map = map.get();
     context.controller = nullptr;
     context.params = data.params.is_object() ? data.params : json::object();
@@ -378,6 +383,17 @@ bool SceneManager::CheckTransitions() {
 void SceneManager::FollowPlayer() {
     Entity* player = Player();
     if (!map || !player) return;
+
+    if (projection.mode == ProjectionMode::Iso) {
+        // 等距相机：把玩家脚底中心投影成屏幕坐标，并将 view.offset 设为
+        // 视口中心与该投影的差值，使玩家始终稳在屏幕中央。
+        float px = player->transform.x + static_cast<float>(player->transform.w) / 2.0f;
+        float py = player->transform.y + static_cast<float>(player->transform.h);
+        SDL_Point iso = projection.IsoPoint(px, py);
+        projection.view.offsetX = EngineConfig::SCREEN_WIDTH / 2.0f - iso.x * projection.view.scale;
+        projection.view.offsetY = EngineConfig::SCREEN_HEIGHT / 2.0f - iso.y * projection.view.scale;
+        return;
+    }
 
     SDL_Rect bounds = player->Bounds();
     int targetX = bounds.x - EngineConfig::SCREEN_WIDTH / 2;
@@ -496,7 +512,13 @@ void SceneManager::RenderTransition(int width, int height) {
 }
 
 void SceneManager::DrawWorld() {
-    if (map) map->DrawGround(Game::camera);
+    bool iso = (projection.mode == ProjectionMode::Iso);
+    SDL_Rect drawCam = iso ? SDL_Rect{0, 0, EngineConfig::SCREEN_WIDTH, EngineConfig::SCREEN_HEIGHT}
+                                : Game::camera;
+    if (map) {
+        if (iso) map->DrawGroundIso(projection, drawCam);
+        else map->DrawGround(drawCam);
+    }
 
     struct Item {
         float key;
@@ -522,15 +544,87 @@ void SceneManager::DrawWorld() {
     for (const auto& item : items) {
         if (item.tile) {
             SDL_Rect dest = item.tile->rect;
-            dest.x -= Game::camera.x;
-            dest.y -= Game::camera.y;
-            if (dest.x < -dest.w || dest.x > Game::camera.w ||
-                dest.y < -dest.h || dest.y > Game::camera.h) continue;
+            dest.x -= drawCam.x;
+            dest.y -= drawCam.y;
+            if (dest.x < -dest.w || dest.x > drawCam.w ||
+                dest.y < -dest.h || dest.y > drawCam.h) continue;
             Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
         } else if (item.entity) {
-            item.entity->Render(Game::camera);
+            const Entity* e = item.entity;
+            if (iso) {
+                // 等距：以脚底中心为锚，按投影定位。
+                // 取实体逻辑坐标（像素）为脚底；贴图向上延伸整个高度。
+                float footX = e->transform.x + static_cast<float>(e->transform.w) / 2.0f;
+                float footY = e->transform.y + static_cast<float>(e->transform.h);
+                SDL_Point foot = projection.WorldToScreen(footX, footY);
+                int sx = foot.x - drawCam.x;
+                int sy = foot.y - drawCam.y - e->transform.h;  // 贴图顶在脚尖上方
+
+                // 脚下阴影：在地面上画一个半透明深色椭圆，让实体“落地”。
+                DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y,
+                               e->transform.w, projection.view.scale);
+
+                // 裁剪（用围盒）
+                if (sx < -e->transform.w || sx > Game::camera.w ||
+                    sy < -e->transform.h || sy > Game::camera.h) continue;
+
+                SDL_Rect src = (e->sprite.src.w > 0 && e->sprite.src.h > 0)
+                                   ? e->sprite.src : SDL_Rect{0, 0, 0, 0};
+                SDL_Rect dest{sx, sy, e->transform.w, e->transform.h};
+                Renderer::DrawSprite(e->sprite.texture, src, dest,
+                                     (e->sprite.flip & SDL_FLIP_VERTICAL) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+            } else {
+                item.entity->Render(Game::camera);
+            }
         }
     }
+}
+
+// ---- 等距脚下阴影（椭圆，懒生成） ----
+static Texture* sShadowTex = nullptr;
+
+static Texture* EnsureShadowTexture() {
+    if (sShadowTex) return sShadowTex;
+    const int W = 64, H = 32;
+    SDL_Surface* surf = SDL_CreateRGBSurface(0, W, H, 32,
+        0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+    if (!surf) return nullptr;
+    if (SDL_MUSTLOCK(surf)) SDL_LockSurface(surf);
+    // 中心黑、alpha 径向渐变到边缘 0（扁椭圆）
+    Uint32* px = (Uint32*)surf->pixels;
+    const float cxp = (W - 1) * 0.5f, cyp = (H - 1) * 0.5f;
+    const float rx = W * 0.5f, ry = H * 0.5f;
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            float nx = (x - cxp) / rx, ny = (y - cyp) / ry;
+            float d = nx * nx + ny * ny;          // 归一椭圆距离^2
+            float a = (d < 1.0f) ? (1.0f - d) : 0.0f;  // 边缘渐隐
+            a = a * a;                             // 更集中到中心
+            Uint8 alpha = (Uint8)(a * 140.0f);     // 中心 ~140，边缘 ~0
+            Uint32 c = (alpha << 24) | (20 << 16) | (16 << 8) | 12;  // 深蓝黑
+            px[y * W + x] = c;
+        }
+    }
+    if (SDL_MUSTLOCK(surf)) SDL_UnlockSurface(surf);
+    sShadowTex = Renderer::CreateTextureFromSurface(surf);
+    SDL_FreeSurface(surf);
+    return sShadowTex;
+}
+
+void SceneManager::DrawFootShadow(int cx, int cy, int entW, float scale) {
+    Texture* tex = EnsureShadowTexture();
+    if (!tex) return;
+    int w = std::max(8, (int)(entW * 0.9f));      // 阴影宽 ≈ 实体宽
+    int h = std::max(4, w / 3);                   // 扁平
+    Shader* sh = ShaderManager::Get("mesh_default");
+    if (!sh) return;
+    MeshVertex v[4];
+    v[0] = { (float)(cx - w / 2), (float)(cy - h / 2), 0.0f, 1.0f, 0, 0 };  // 左上
+    v[1] = { (float)(cx + w / 2), (float)(cy - h / 2), 1.0f, 1.0f, 0, 0 };  // 右上
+    v[2] = { (float)(cx + w / 2), (float)(cy + h / 2), 1.0f, 0.0f, 0, 0 };  // 右下
+    v[3] = { (float)(cx - w / 2), (float)(cy + h / 2), 0.0f, 0.0f, 0, 0 };  // 左下
+    unsigned short idx[6] = {0, 1, 2, 0, 2, 3};
+    Renderer::DrawMesh(*sh, v, 4, idx, 6, tex, MeshDrawOptions{ {255,255,255,255} });
 }
 
 void SceneManager::Render() {

@@ -7,6 +7,8 @@
 #include "Engine/Shader.h"
 #include "Engine/Texture.h"
 #include "Engine/Time.h"
+#include <cstdio>
+#include <sys/stat.h>
 #include <memory>
 
 namespace {

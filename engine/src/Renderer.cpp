@@ -7,6 +7,8 @@
 #include "Engine/Log.h"
 #include "Engine/Time.h"
 #include <cstring>
+#include <cstdio>
+#include <sys/stat.h>
 #include <vector>
 
 namespace {
@@ -20,6 +22,7 @@ unsigned int quadVbo = 0;
 unsigned int meshVao = 0;
 unsigned int meshVbo = 0;
 unsigned int meshEbo = 0;
+Shader* meshShader = nullptr;
 Texture whiteTexture;   // 1x1 白色，用于图元绘制
 
 int viewportWidth = 0;
@@ -133,6 +136,35 @@ bool Renderer::Init(SDL_Window* win) {
     LOG_INFO("Renderer: GL_VERSION=" << (const char*)glGetString(0x1F02)
              << " RENDERER=" << (const char*)glGetString(0x1F01));
 
+    // 等距 mesh 专用 shader：顶点坐标直接是屏幕像素（不是 0..1 quad），
+    // 由 shader 内统一转 NDC；UV 直接是纹理归一坐标，无 uDstRect/uUvRect 包装。
+    static const char* MESH_VS =
+        "#version 330 core\n"
+        "layout(location=0) in vec2 aPos;\n"
+        "layout(location=1) in vec2 aUv;\n"
+        "uniform vec2 u_resolution;\n"
+        "out vec2 vUv;\n"
+        "void main() {\n"
+        "    vUv = aUv;\n"
+        "    float ndcX = (aPos.x / u_resolution.x) * 2.0 - 1.0;\n"
+        "    float ndcY = 1.0 - (aPos.y / u_resolution.y) * 2.0;\n"
+        "    gl_Position = vec4(ndcX, ndcY, 0.0, 1.0);\n"
+        "}\n";
+    static const char* MESH_FS =
+        "#version 330 core\n"
+        "in vec2 vUv;\n"
+        "out vec4 FragColor;\n"
+        "uniform sampler2D u_texture;\n"
+        "uniform vec4 u_tint;\n"
+        "void main() {\n"
+        "    vec4 tex = texture(u_texture, vUv);\n"
+        "    FragColor = tex * u_tint;\n"
+        "}\n";
+    meshShader = ShaderManager::Register("mesh_default", MESH_VS, MESH_FS);
+    if (!meshShader) {
+        LOG_ERROR("Renderer: 默认 mesh shader 编译失败");
+        return false;
+    }
     spriteShader = ShaderManager::Register("sprite_default", SPRITE_VS, SPRITE_FS);
     if (!spriteShader) {
         LOG_ERROR("Renderer: 默认 sprite shader 编译失败");

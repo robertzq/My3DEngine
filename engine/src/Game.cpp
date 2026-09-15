@@ -1,4 +1,6 @@
 #include "Engine/Game.h"
+#include <sys/stat.h>
+#include <cstdio>
 #include "Engine/ResourceManager.h"
 #include "Engine/TextRenderer.h"
 #include "Engine/Renderer.h"
