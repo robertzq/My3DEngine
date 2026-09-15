@@ -106,6 +106,50 @@ void TextRenderer::DrawTextIn(const SDL_Rect& box, const std::string& text, SDL_
     DrawText(x, y, text, color, fontSize);
 }
 
+std::vector<std::string> TextRenderer::WrapText(const std::string& text, int maxPx, int fontSize) {
+    std::vector<std::string> out;
+    TTF_Font* f = FontFor(fontSize);
+    if (!f || text.empty()) {
+        if (!text.empty()) out.push_back(text);
+        return out;
+    }
+    std::string line;
+    int lineW = 0;
+    size_t i = 0;
+    const size_t n = text.size();
+    while (i < n) {
+        unsigned char c = (unsigned char)text[i];
+        int bytes = 1;
+        if (c >= 0xF0) bytes = 4;
+        else if (c >= 0xE0) bytes = 3;
+        else if (c >= 0xC0) bytes = 2;
+        if (i + bytes > n) bytes = 1; // 防止越过字节末尾
+
+        if (c == '\n') {               // 显式换行
+            out.push_back(line);
+            line.clear();
+            lineW = 0;
+            i += 1;
+            continue;
+        }
+
+        std::string sub = text.substr(i, bytes);
+        int gw = 0, gh = 0;
+        TTF_SizeUTF8(f, sub.c_str(), &gw, &gh); // 单个字符真实宽度
+        if (lineW + gw > maxPx && !line.empty()) {
+            out.push_back(line);
+            line.clear();
+            lineW = 0;
+        }
+        line += sub;
+        lineW += gw;
+        i += bytes;
+    }
+    if (!line.empty()) out.push_back(line);
+    if (out.empty()) out.push_back("");
+    return out;
+}
+
 void TextRenderer::Clean() {
     for (auto& pair : cache) Renderer::DestroyTexture(pair.second);
     cache.clear();
