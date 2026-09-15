@@ -28,11 +28,12 @@ View        (游戏)   SceneView 子类   ← 场景脚本，只负责每帧渲�
 - **统一帧时间**：`Time` 提供每帧 `DeltaTime` / `UnscaledDeltaTime` / `ElapsedTime` / `FrameCount` 与 `TimeScale`，对异常大 dt 做 clamp。
 - **资源管理**：`ResourceManager` 从内存资源表加载并缓存纹理 / 文本，支持资源表注入。
 - **物理碰撞**：AABB 查询 / 解析分离，`Collider` 带 `layer`/`mask`/`isTrigger`，支持实体触发，横版与俯视角两套移动解析。
+- **等距投影**：`Projection` 支持 Ortho / Iso 两种投影，等距下自动做世界→屏幕斜 45° 映射（`sx=(wx-wy)/2, sy=(wx+wy)/4`）、脚底锚点与菱形网格铺装；`ScreenDirToWorldDir()` 把按键的屏幕意图逆投影为世界方向，让等距下「按上→屏幕上走」的直觉成立（避免斜移）。
 - **文字渲染**：`TextRenderer` 基于 SDL_ttf，带纹理缓存与抗锯齿。
 - **输入**：`Input` 键盘状态轮询 + action 映射（`Down`/`Pressed`/`Released`/`Axis`），gameplay 不直接依赖 `SDL_SCANCODE`。
 - **音频**：`Audio`（SDL_mixer）从内存资源表加载 music / sfx，music 与 SFX 分开控制音量，gameplay 只用资源 ID。
 - **UI / 菜单**：组件化 `UIElement`（Label/Image/Panel/Button/Toggle/Slider/Spacer）+ 布局（垂直/水平）+ `Menu` focus 导航 + `MenuStack` + `UIAction` 模型；引擎不含游戏逻辑，菜单只产 action 交上层消费。
-- **日志**：`Log` 分级日志宏 `LOG_DEBUG/INFO/WARN/ERROR`。
+- **日志**：`Log` 分级日志宏 `LOG_DEBUG/INFO/WARN/ERROR`；支持 `EngineLogSetFile(path)` 开启文件日志（追加），`EngineLogClose()`/`EngineLogFlush()` 控制。
 
 ---
 
@@ -57,6 +58,7 @@ engine/
 │   ├── ResourceManager.h   #   资源加载 / 缓存 / 绘制
 │   ├── TextRenderer.h      #   文字渲染（SDL_ttf）
 │   ├── Input.h             #   键盘轮询 + action 映射
+│   ├── Projection.h        #   投影：Ortho/Iso 世界↔屏幕映射 + 等距控制方向逆投影
 │   ├── Physics.h           #   AABB 碰撞检测与移动解析
 │   ├── UI/UIElement.h      #   UI 基类 + 对齐锚点
 │   ├── UI/UIPrimitives.h   #   Label / Image / Panel / Button / Toggle / Slider / Spacer
@@ -470,6 +472,10 @@ TextRenderer::Clean();
 #include "Engine/Log.h"
 LOG_INFO("资源数量: " << count);
 LOG_ERROR("加载失败: " << id);
+// 可选：开启文件日志（追加模式），方便排查
+EngineLogSetFile("game.log");
+EngineLogClose();  // 关闭文件日志
+EngineLogFlush(); // 手动冲刷
 ```
 
 ### 10. Y 轴深度排序（遮挡）

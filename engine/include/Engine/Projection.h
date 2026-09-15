@@ -87,6 +87,22 @@ public:
         return base;
     }
 
+    // —— 控制方向逆投影 ——
+    // 把「屏幕方向意图（按键单位向量 dsx,dsy，例如按上=(-1)? 上=0,-1；右=1,0；下=0,1；左=-1,0）」
+    // 逆投影为「世界单位移动向量」。等距下投影会把世界方向旋转 45°，
+    // 为避免「按上却往屏幕右上走」的斜移感，按键应表示屏幕方向，再反解世界方向：
+    //   dwx = dsx + 2*dsy
+    //   dwy = 2*dsy - dsx
+    // 返回值是单位向量（世界坐标移动方向），正交模式下原样返回。
+    SDL_FPoint ScreenDirToWorldDir(float dsx, float dsy) const {
+        if (mode != ProjectionMode::Iso) return {dsx, dsy};
+        float wx = dsx + 2.0f * dsy;
+        float wy = 2.0f * dsy - dsx;
+        float len = std::sqrt(wx * wx + wy * wy);
+        if (len < 1e-6f) return {0.0f, 0.0f};
+        return {wx / len, wy / len};
+    }
+
     // 生成一个菱形四顶点（屏幕坐标，中心在 cx,cy）。
     // 用于地面/瓦片以菱形铺装；菱形外 alpha 交给贴图/着色裁剪。
     // 注意：菱形几何必须与 WorldToScreen 的 view.scale 一致，否则与相邻格间距不匹配会露缝。
