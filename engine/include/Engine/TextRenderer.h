@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <map>
 #include <SDL_ttf.h>
 
@@ -24,6 +25,10 @@ public:
 
     // 测量文本像素尺寸（fontSize<=0 用默认字号）
     static SDL_Point MeasureText(const std::string& text, int fontSize = 0);
+
+    // 按最大像素宽度 maxPx 将文本折成多行（逐字符真实测量，兼容 UTF-8 全角/半角混合）。
+    // 不会从多字节字符中间断开。fontSize<=0 用默认字号。
+    static std::vector<std::string> WrapText(const std::string& text, int maxPx, int fontSize = 0);
 
 private:
     static TTF_Font* FontFor(int fontSize);
