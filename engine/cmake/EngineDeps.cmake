@@ -13,13 +13,18 @@
 #
 # 注：依赖目录默认放在 ${CMAKE_SOURCE_DIR}/dependencies 下，
 #   结构与 engine/CMakeLists.txt 的 WIN32 分支保持一致。
+#   外部项目可通过 set(MYENGINE_DEPS_ROOT "<路径>") 覆盖。
 
 # ---------------------------------------------------------------------------
 function(myengine_setup_target TARGET)
     # --- 1. 平台依赖查找（仅 Windows 需要 DLL 部署；库链接由 engine 传递） ---
     if(WIN32)
         message(STATUS "myengine: locating SDL2 runtime libraries...")
-        set(_DEPS "${CMAKE_SOURCE_DIR}/dependencies")
+        if(DEFINED MYENGINE_DEPS_ROOT AND NOT "${MYENGINE_DEPS_ROOT}" STREQUAL "")
+            set(_DEPS "${MYENGINE_DEPS_ROOT}")
+        else()
+            set(_DEPS "${CMAKE_SOURCE_DIR}/dependencies")
+        endif()
 
         set(_REQUIRED_DLLS
             "${_DEPS}/SDL2/lib/x64/SDL2.dll"
