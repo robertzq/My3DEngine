@@ -9,7 +9,7 @@
 #include "Engine/MeshPageCurl.h"
 #include "Engine/SceneContext.h"
 #include "Engine/SceneData.h"
-#include "Engine/TileMap.h"
+#include "Engine/WorldMap.h"
 #include "Engine/TileSet.h"
 #include "Engine/json.hpp"
 
@@ -59,7 +59,7 @@ public:
     void DrawWorld();
     void DrawFootShadow(int cx, int cy, int entW, float scale);   // 等距脚下椭圆阴影
 
-    TileMap* Map() { return map.get(); }
+    WorldMap* Map() { return map.get(); }
     const SceneData* Current() const { return current; }
 
     std::vector<SDL_Rect> Colliders() const;
@@ -85,7 +85,7 @@ private:
     const SceneData* current = nullptr;
     // 当前投影模式（等距时用于 TileMap/Entity 渲染定位）
     Projection projection;
-    std::unique_ptr<TileMap> map;
+    std::unique_ptr<WorldMap> map;
     std::unique_ptr<SceneView> view;
     std::unique_ptr<SceneController> controller;
     SceneContext context;

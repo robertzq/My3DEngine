@@ -40,6 +40,7 @@ add_library(engine STATIC
     src/Physics.cpp
     src/TileMap.cpp
     src/TileLayer.cpp
+    src/WorldMap.cpp
     src/SceneManager.cpp
     src/Entity.cpp
     src/Time.cpp

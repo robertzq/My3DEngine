@@ -302,8 +302,8 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
         if (tileSetIt == tilesets.end()) {
             LOG_ERROR("SceneManager: 未知图块集 -> " << data.tileset);
         } else {
-            map = std::make_unique<TileMap>();
-            map->Load(data.map, tileSetIt->second);
+            map = std::make_unique<WorldMap>();
+            map->LoadLegacyMap(data.map, tileSetIt->second);
         }
     }
 

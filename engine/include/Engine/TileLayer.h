@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <string>
 #include "SDL.h"
+#include "Engine/TileMap.h"   // TileSprite 完整定义（overlay 成员需完整类型）
+#include "Engine/TileSet.h"
 
-class TileSet;
-struct TileSprite;
 class Texture;
 
 // ============================================================================

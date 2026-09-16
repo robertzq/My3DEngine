@@ -1,7 +1,7 @@
 #pragma once
 #include "Engine/Projection.h"
 #include "Engine/SceneData.h"
-#include "Engine/TileMap.h"
+#include "Engine/WorldMap.h"
 
 class Game;
 class SceneManager;
@@ -11,7 +11,7 @@ struct SceneContext {
     Game* game = nullptr;
     SceneManager* manager = nullptr;
     SceneController* controller = nullptr;
-    TileMap* map = nullptr;
+    WorldMap* map = nullptr;
     const SceneData* data = nullptr;
     json params;
 
