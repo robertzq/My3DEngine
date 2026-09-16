@@ -6,6 +6,7 @@
 #include "Engine/Renderer.h"
 #include "Engine/PostProcess.h"
 #include "Engine/MeshPageCurl.h"
+#include "Engine/PageCurl.h"
 #include "Engine/RedBorder.h"
 #include "Engine/ShaderManager.h"
 #include "Engine/Log.h"
@@ -59,6 +60,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
         }
         PostProcess::Init();
         MeshPageCurl::Init();
+        PageCurl::Init();
         RedBorder::Init();
 
         isRunning = true;
