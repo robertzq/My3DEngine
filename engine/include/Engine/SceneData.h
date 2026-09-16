@@ -40,6 +40,13 @@ struct SceneTransition {
     json transitionParams;
 };
 
+// 地图多层加载配置：单个 layer 的 id 与地图文件。
+// "map": { "layers": [ {"id":"ground","file":"maps/xx.map"}, ... ] }
+struct MapLayerSpec {
+    std::string id;
+    std::string file;
+};
+
 namespace scene_data_detail {
 
 inline EntityDef ParseEntity(const json& j) {
@@ -86,6 +93,7 @@ struct SceneData {
     std::string view;
     std::string controller;
     std::string map;
+    std::vector<MapLayerSpec> mapLayers;   // 多层地图（新增，可选）
     std::string tileset;
     std::string projectionMode;
     float projectionScale = 1.0f;
@@ -101,11 +109,26 @@ struct SceneData {
         data.id = sceneId;
         data.view = j.value("view", "");
         data.controller = j.value("controller", "");
-        data.map = j.value("map", "");
         data.tileset = j.value("tileset", "");
         data.projectionMode = j.value("projection", "");
         data.projectionScale = j.value("projection_scale", 1.0f);
         data.params = j.value("params", json::object());
+
+        // map 字段：兼容旧 string，也支持新 object { "layers": [...] }。
+        if (j.contains("map")) {
+            const auto& m = j["map"];
+            if (m.is_string()) {
+                data.map = m.get<std::string>();
+            } else if (m.is_object() && m.contains("layers") && m["layers"].is_array()) {
+                for (const auto& layer : m["layers"]) {
+                    if (!layer.is_object()) continue;
+                    MapLayerSpec spec;
+                    spec.id = layer.value("id", "");
+                    spec.file = layer.value("file", "");
+                    if (!spec.file.empty()) data.mapLayers.push_back(spec);
+                }
+            }
+        }
 
         if (j.contains("spawns")) {
             for (auto it = j["spawns"].begin(); it != j["spawns"].end(); ++it) {

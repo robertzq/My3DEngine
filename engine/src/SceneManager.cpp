@@ -297,11 +297,19 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
     ClearScene();
     current = &data;
 
-    if (!data.map.empty() && !data.tileset.empty()) {
+    if (!data.tileset.empty()) {
         auto tileSetIt = tilesets.find(data.tileset);
         if (tileSetIt == tilesets.end()) {
             LOG_ERROR("SceneManager: 未知图块集 -> " << data.tileset);
-        } else {
+        } else if (!data.mapLayers.empty()) {
+            // Phase3：多层地图（map.layers[]）。校验失败则报错，不静默降级。
+            map = std::make_unique<WorldMap>();
+            if (!map->LoadLayered(data.mapLayers, tileSetIt->second)) {
+                LOG_ERROR("SceneManager: 多层地图加载失败，场景 " << sceneId << " 无有效地图");
+                map.reset();
+            }
+        } else if (!data.map.empty()) {
+            // 兼容旧格式：map 为字符串 -> 默认 ground 层。
             map = std::make_unique<WorldMap>();
             map->LoadLegacyMap(data.map, tileSetIt->second);
         }

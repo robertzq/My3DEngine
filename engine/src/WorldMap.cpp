@@ -9,22 +9,18 @@
 #include "Engine/Log.h"
 #include <sstream>
 
-bool WorldMap::LoadLegacyMap(const std::string& mapResourceId, const TileSet& tileSet) {
-    tileSet_ = tileSet;
-    tileSize_ = tileSet.tileSize > 0 ? tileSet.tileSize : EngineConfig::TILE_SIZE;
+// 解析单个地图文件为宽/高 + 平铺数据（row-major）。
+// 兼容空格/制表分隔 与 紧凑数字串 两种矩阵写法（对齐旧 TileMap::Load）。
+// 返回 false 表示内容为空 / 无有效数据 / 列宽不确定（malformed）。
+static bool ParseMapFile(const std::string& content,
+                         int& outWidth, int& outHeight, std::vector<int>& outFlat) {
+    outWidth = 0;
+    outHeight = 0;
+    outFlat.clear();
 
-    std::string content = ResourceManager::GetText(mapResourceId);
-    if (content.empty()) {
-        LOG_ERROR("WorldMap 加载失败，资源为空: " << mapResourceId);
-        return false;
-    }
-
-    // 解析旧单矩阵：行 -> 数据扁平化进第 0 层。
-    std::vector<int> flat;
-    int width = 0;
-    int height = 0;
     std::stringstream stream(content);
     std::string line;
+    std::vector<int> rowWidths;
     while (std::getline(stream, line)) {
         while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
         if (line.empty()) continue;
@@ -42,19 +38,36 @@ bool WorldMap::LoadLegacyMap(const std::string& mapResourceId, const TileSet& ti
         }
 
         if (!row.empty()) {
-            if (static_cast<int>(row.size()) > width) width = static_cast<int>(row.size());
-            flat.insert(flat.end(), row.begin(), row.end());
-            ++height;
+            rowWidths.push_back(static_cast<int>(row.size()));
+            if (static_cast<int>(row.size()) > outWidth) outWidth = static_cast<int>(row.size());
+            outFlat.insert(outFlat.end(), row.begin(), row.end());
+            ++outHeight;
         }
     }
 
-    if (width <= 0 || height <= 0) {
-        LOG_ERROR("WorldMap 加载失败，无有效地图数据: " << mapResourceId);
+    if (outWidth <= 0 || outHeight <= 0) return false;
+    outFlat.resize(static_cast<size_t>(outWidth) * outHeight, 0);
+    return true;
+}
+
+bool WorldMap::LoadLegacyMap(const std::string& mapResourceId, const TileSet& tileSet) {
+    tileSet_ = tileSet;
+    tileSize_ = tileSet.tileSize > 0 ? tileSet.tileSize : EngineConfig::TILE_SIZE;
+
+    std::string content = ResourceManager::GetText(mapResourceId);
+    if (content.empty()) {
+        LOG_ERROR("WorldMap 加载失败，资源为空: " << mapResourceId);
         return false;
     }
 
-    // 丢弃多余行（与旧 TileMap 行为一致：data[y][x]，width 取最大行宽）。
-    flat.resize(static_cast<size_t>(width) * height, 0);
+    // 解析旧单矩阵：行 -> 数据扁平化进第 0 层。
+    std::vector<int> flat;
+    int width = 0;
+    int height = 0;
+    if (!ParseMapFile(content, width, height, flat)) {
+        LOG_ERROR("WorldMap 加载失败，无有效地图数据: " << mapResourceId);
+        return false;
+    }
 
     layers_.clear();
     layers_.emplace_back(width, height, TileLayer::kEmpty);
@@ -69,6 +82,75 @@ bool WorldMap::LoadLegacyMap(const std::string& mapResourceId, const TileSet& ti
     RebuildMetadata();
 
     LOG_INFO("WorldMap 加载成功: " << mapResourceId << " (" << width << "x" << height << ")");
+    return true;
+}
+
+bool WorldMap::LoadLayered(const std::vector<MapLayerSpec>& specs, const TileSet& tileSet) {
+    tileSet_ = tileSet;
+    tileSize_ = tileSet.tileSize > 0 ? tileSet.tileSize : EngineConfig::TILE_SIZE;
+
+    if (specs.empty()) {
+        LOG_ERROR("WorldMap 多层加载失败：map.layers 为空");
+        return false;
+    }
+
+    // 1) layer id 唯一性校验
+    std::vector<std::string> seenIds;
+    for (const auto& spec : specs) {
+        if (spec.id.empty()) {
+            LOG_ERROR("WorldMap 多层加载失败：存在空 layer id");
+            return false;
+        }
+        for (const auto& sid : seenIds) {
+            if (sid == spec.id) {
+                LOG_ERROR("WorldMap 多层加载失败：duplicate layer id -> " << spec.id);
+                return false;
+            }
+        }
+        seenIds.push_back(spec.id);
+    }
+
+    layers_.clear();
+    int mapWidth = 0;
+    int mapHeight = 0;
+
+    for (size_t i = 0; i < specs.size(); ++i) {
+        const MapLayerSpec& spec = specs[i];
+        std::string content = ResourceManager::GetText(spec.file);
+        if (content.empty()) {
+            LOG_ERROR("WorldMap 多层加载失败：layer[" << spec.id << "] 文件缺失或为空 -> " << spec.file);
+            return false;
+        }
+
+        int w = 0, h = 0;
+        std::vector<int> flat;
+        if (!ParseMapFile(content, w, h, flat)) {
+            LOG_ERROR("WorldMap 多层加载失败：layer[" << spec.id << "] 矩阵无效/malformed -> " << spec.file);
+            return false;
+        }
+
+        if (i == 0) {
+            mapWidth = w;
+            mapHeight = h;
+        } else if (w != mapWidth || h != mapHeight) {
+            LOG_ERROR("WorldMap 多层加载失败：layer[" << spec.id << "] 尺寸 "
+                      << w << "x" << h << " 与首层 " << mapWidth << "x" << mapHeight
+                      << " 不一致（不允许静默 resize）");
+            return false;
+        }
+
+        layers_.emplace_back(w, h, TileLayer::kEmpty);
+        for (int row = 0; row < h; ++row) {
+            for (int col = 0; col < w; ++col) {
+                layers_[i].SetTile(col, row, flat[static_cast<size_t>(row) * w + col]);
+            }
+        }
+    }
+
+    BuildTextures();
+    RebuildMetadata();
+
+    LOG_INFO("WorldMap 多层加载成功: " << specs.size() << " 层 (" << mapWidth << "x" << mapHeight << ")");
     return true;
 }
 

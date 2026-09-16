@@ -8,6 +8,7 @@
 #include "Engine/TileSet.h"
 #include "Engine/TileLayer.h"
 #include "Engine/Projection.h"
+#include "Engine/SceneData.h"
 
 class Texture;
 struct TileSprite;
@@ -32,6 +33,16 @@ public:
     // 旧单矩阵地图：作为默认 ground 层加载（高度兼容，保持旧行为）。
     // 返回 false 表示加载失败（资源为空/无有效数据）。
     bool LoadLegacyMap(const std::string& mapResourceId, const TileSet& tileSet);
+
+    // 多层地图加载（Phase3）：按 layer 规格逐层加载 + 校验。
+    // specs 每项 { id, file }；校验规则（任一失败即返回 false，不静默降级）：
+    //   1) layer id 必须唯一（duplicate 报错）
+    //   2) file 必须能读到非空内容（missing 报错）
+    //   3) 每层矩阵必须是合法同宽矩形（malformed 报错）
+    //   4) 第一层决定 map 尺寸；后续层尺寸必须与其一致（mismatch 报错）
+    //   5) 不允许静默 resize
+    // 加载成功返回 true；失败时本对象状态不确定（调用方应视为加载失败处理）。
+    bool LoadLayered(const std::vector<MapLayerSpec>& specs, const TileSet& tileSet);
 
     // —— 多层 API（Phase3 起走这里；Phase2 提供基础能力）——
     // 追加一个空层。返回 layerId（从 0 递增）。
