@@ -568,12 +568,37 @@ void SceneManager::DrawWorld() {
     std::vector<Item> items;
     if (map) {
         for (const auto& tile : map->Overlays()) {
-            items.push_back({static_cast<float>(tile.sortY), &tile, nullptr});
+            float key = static_cast<float>(tile.sortY);
+            if (iso) {
+                // 统一 sort key：投影后的视觉脚底 y（exeMap #18）。
+                const SDL_Rect& tr = tile.rect;
+                float fwx = static_cast<float>(tr.x) + static_cast<float>(tr.w) * 0.5f;
+                float fwy = static_cast<float>(tr.y) + static_cast<float>(tr.h);
+                int eLevel = (map->HasElevation() && tile.col >= 0 && tile.row >= 0)
+                                 ? map->GetElevation(tile.col, tile.row) : 0;
+                key = static_cast<float>(
+                    projection.ProjectedFoot(fwx, fwy, eLevel, map->ElevationStep()).y);
+            }
+            items.push_back({key, &tile, nullptr});
         }
     }
     for (auto& entity : entities) {
         if (entity->alive && entity->visible) {
-            items.push_back({entity->SortKey(), nullptr, entity.get()});
+            float key = entity->SortKey();
+            if (iso) {
+                float footX = entity->transform.x + static_cast<float>(entity->transform.w) * 0.5f;
+                float footY = entity->transform.y + static_cast<float>(entity->transform.h);
+                int eLevel = 0;
+                if (map && map->HasElevation()) {
+                    const int t = map->TileSize();
+                    eLevel = map->GetElevation(static_cast<int>(static_cast<int>(footX) / t),
+                                              static_cast<int>(static_cast<int>(footY) / t));
+                }
+                // sortYOffset |= screen-space 视觉微调（前提未使用，默认0）。
+                key = static_cast<float>(
+                    projection.ProjectedFoot(footX, footY, eLevel, map ? map->ElevationStep() : 0).y) + entity->sortYOffset;
+            }
+            items.push_back({key, nullptr, entity.get()});
         }
     }
 
