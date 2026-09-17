@@ -87,6 +87,15 @@ public:
         return base;
     }
 
+
+    // elevation-aware 统一投影：把「世界脚点 (wx,wy) + 地形高度差」投影成屏幕脚点。
+    // elevationStepPx 是屏幕像素单位，仅作用于屏幕 y（不改变世界/碰撞坐标）。
+    // 返回「地面脚底屏幕点」，调用方再往上减贴图高度即可（勿再减 elevation）。
+    SDL_Point ProjectedFoot(float wx, float wy, int elevLevel, int elevStepPx) const {
+        SDL_Point p = WorldToScreen(wx, wy);
+        p.y -= elevLevel * elevStepPx;
+        return p;
+    }
     // —— 控制方向逆投影 ——
     // 把「屏幕方向意图（按键单位向量 dsx,dsy，例如按上=(-1)? 上=0,-1；右=1,0；下=0,1；左=-1,0）」
     // 逆投影为「世界单位移动向量」。等距下投影会把世界方向旋转 45°，

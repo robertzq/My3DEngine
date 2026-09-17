@@ -405,14 +405,11 @@ void WorldMap::DrawGroundIso(const Projection& proj, const SDL_Rect& camera) con
 
                 float wx = static_cast<float>(col * tileSize_ + tileSize_ / 2);
                 float wy = static_cast<float>(row * tileSize_ + tileSize_ / 2);
-                SDL_Point c = proj.WorldToScreen(wx, wy);
+                // 统一投影：地面菱形中心根据该格高度在屏幕 y 上移（e!=0 时改变，baseline(0) 无影响）。
+                int elev = hasElevation_ ? static_cast<int>(GetElevation(col, row)) : 0;
+                SDL_Point c = proj.ProjectedFoot(wx, wy, elev, ElevationStep());
                 c.x -= camera.x;
                 c.y -= camera.y;
-                // Elevation: 根据该格地形高度将地面菱形在屏幕 y 上移（抬高高地）。
-                // 仅置 e!=0 时起作用，baseline(0) 格不受影响；向后兼容无 elevation 场景。
-                if (hasElevation_) {
-                    c.y -= static_cast<int>(GetElevation(col, row)) * ElevationStep();
-                }
 
                 if (c.x + mapCull < 0 || c.x - mapCull > camera.w ||
                     c.y + mapCull < 0 || c.y - mapCull > camera.h) continue;

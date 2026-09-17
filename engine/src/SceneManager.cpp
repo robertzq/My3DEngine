@@ -595,19 +595,19 @@ void SceneManager::DrawWorld() {
                 // 取实体逻辑坐标（像素）为脚底；贴图向上延伸整个高度。
                 float footX = e->transform.x + static_cast<float>(e->transform.w) / 2.0f;
                 float footY = e->transform.y + static_cast<float>(e->transform.h);
-                SDL_Point foot = projection.WorldToScreen(footX, footY);
-                int sx = foot.x - drawCam.x;
-                int entityElev = 0;
+                int entityElevLevel = 0;
                 if (map && map->HasElevation()) {
                     const int t = map->TileSize();
-                    entityElev = static_cast<int>(map->GetElevation(
+                    entityElevLevel = map->GetElevation(
                         static_cast<int>(static_cast<int>(footX) / t),
-                        static_cast<int>(static_cast<int>(footY) / t))) * map->ElevationStep();
+                        static_cast<int>(static_cast<int>(footY) / t));
                 }
-                int sy = foot.y - drawCam.y - entityElev - e->transform.h;  // lifted for elevation  // 贴图顶在脚尖上方
+                SDL_Point foot = projection.ProjectedFoot(footX, footY, entityElevLevel, map ? map->ElevationStep() : 0);
+                int sx = foot.x - drawCam.x;
+                int sy = foot.y - drawCam.y - e->transform.h;  // 贴图顶在脚尖上方（地形高度已由统一投影计入）
 
                 // 脚下阴影：在地面上画一个半透明深色椭圆，让实体“落地”。
-                DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y - entityElev,
+                DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y,
                                e->transform.w, projection.view.scale);
 
                 // 裁剪（用围盒）

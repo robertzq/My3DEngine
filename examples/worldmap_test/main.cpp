@@ -11,6 +11,7 @@
 #include "Engine/WorldMap.h"
 #include "Engine/TileLayer.h"
 #include "Engine/TileSet.h"
+#include "Engine/Projection.h"
 #include <cstdio>
 #include <vector>
 
@@ -213,6 +214,32 @@ int main() {
         wm.DumpCell(0, 0);        // 打印各层 EMPTY
         CHECK(wm.GetGroundTile(1, 1) == 1 && wm.GetTile(1, 1, 1) == 5,
               "I1 DumpCell 不改变数据状态");
+    }
+
+    // --- Test J: Projection::ProjectedFoot 统一投影 (elevation-aware) ---
+    {
+        Projection iso;
+        iso.mode = ProjectionMode::Iso;
+        iso.grid = {64, 32};
+        iso.view.scale = 2.6f;
+        iso.view.offsetX = 100.0f;
+        iso.view.offsetY = 200.0f;
+        const int step = 42;
+
+        SDL_Point base = iso.WorldToScreen(928.0f, 560.0f);
+        SDL_Point p0 = iso.ProjectedFoot(928.0f, 560.0f, 0, step);
+        CHECK(p0.x == base.x && p0.y == base.y, "J1 elevation=0 与 WorldToScreen 一致");
+
+        SDL_Point p1 = iso.ProjectedFoot(928.0f, 560.0f, 1, step);
+        CHECK(p1.x == p0.x && p1.y == p0.y - step, "J2 elevation=1 只改屏幕 y (-一级)");
+
+        SDL_Point p2 = iso.ProjectedFoot(928.0f, 560.0f, 2, step);
+        CHECK(p2.y == p0.y - 2 * step && p2.x == p0.x, "J3 elevation=2 屏幕 y -二级, x 不变");
+
+        Projection ortho;
+        ortho.mode = ProjectionMode::Ortho;
+        SDL_Point o1 = ortho.ProjectedFoot(100.0f, 80.0f, 3, step);
+        CHECK(o1.x == 100 && o1.y == 80 - 3 * step, "J4 ortho 模式统一投影同样生效");
     }
 
     std::printf("=== 完成：%d 项 / 失败 %d 项 ===\n", g_checks, g_fail);
