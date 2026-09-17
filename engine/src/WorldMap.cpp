@@ -393,6 +393,9 @@ void WorldMap::DrawGroundIso(const Projection& proj, const SDL_Rect& camera) con
     const int hh = static_cast<int>(proj.grid.halfH() * s);   // 屏幕菱形半高
     const int mapCull = hw + hh + tileSize_;
 
+    // Phase8: collect cliff walls into member for unified depth-sort in SceneManager.
+    cliffQuads_.clear();
+
     for (const auto& layer : layers_) {
         for (int row = 0; row < layer.Height(); ++row) {
             for (int col = 0; col < layer.Width(); ++col) {
@@ -429,7 +432,33 @@ void WorldMap::DrawGroundIso(const Projection& proj, const SDL_Rect& camera) con
                 unsigned short idx[6] = {0, 1, 2, 0, 2, 3};
                 Shader* shader = ShaderManager::Get("mesh_default");
                 if (shader) Renderer::DrawMesh(*shader, verts, 4, idx, 6, tex, MeshDrawOptions{});
+
+                // Phase8: collect exposed vertical cliff walls (neighbor lower than this cell)
+                if (elev > 0) {
+                    // dir -> (dc,dr) -> diamond edge (a,b)
+                    struct Wall { int dc, dr, a, b; } walls[4] = {
+                        { 0,-1, 1, 2 }, // N  (row-1) edge[1]-[2] screen-upper-right
+                        { 1, 0, 2, 3 }, // E  (col+1) edge[2]-[3] screen-right
+                        { 0, 1, 3, 0 }, // S  (row+1) edge[3]-[0] screen-lower-left
+                        {-1, 0, 0, 1 }, // W  (col-1) edge[0]-[1] screen-upper-left
+                    };
+                    for (int wi = 0; wi < 4; ++wi) {
+                        const Wall& w = walls[wi];
+                        int ne = static_cast<int>(GetElevation(col + w.dc, row + w.dr));
+                        if (ne >= elev) continue;            // not exposed (covered by equal/higher)
+                        const SDL_Point& A = pts[w.a];
+                        const SDL_Point& B = pts[w.b];
+                        CliffQuad q;
+                        q.ax = A.x; q.ay = A.y; q.bx = B.x; q.by = B.y;
+                        q.drop = (elev - ne) * ElevationStep();
+                        q.tex = tex;
+                        q.sortKey = static_cast<float>(A.y + q.drop); // bottom y
+                        cliffQuads_.push_back(q);
+                    }
+                }
+
             }
         }
     }
+
 }

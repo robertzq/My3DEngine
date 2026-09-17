@@ -563,6 +563,7 @@ void SceneManager::DrawWorld() {
         float key;
         const TileSprite* tile;
         Entity* entity;
+        const WorldMap::CliffQuad* wall = nullptr;
     };
 
     std::vector<Item> items;
@@ -579,7 +580,7 @@ void SceneManager::DrawWorld() {
                 key = static_cast<float>(
                     projection.ProjectedFoot(fwx, fwy, eLevel, map->ElevationStep()).y);
             }
-            items.push_back({key, &tile, nullptr});
+            items.push_back({key, &tile, nullptr, nullptr});
         }
     }
     for (auto& entity : entities) {
@@ -598,7 +599,12 @@ void SceneManager::DrawWorld() {
                 key = static_cast<float>(
                     projection.ProjectedFoot(footX, footY, eLevel, map ? map->ElevationStep() : 0).y) + entity->sortYOffset;
             }
-            items.push_back({key, nullptr, entity.get()});
+            items.push_back({key, nullptr, entity.get(), nullptr});
+        }
+    }
+    if (map && iso) {
+        for (const auto& w : map->CliffQuads()) {
+            items.push_back({w.sortKey, nullptr, nullptr, &w});
         }
     }
 
@@ -630,6 +636,19 @@ void SceneManager::DrawWorld() {
                     dest.y < -dest.h || dest.y > drawCam.h) continue;
                 Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
             }
+        } else if (item.wall) {
+            // Phase8: vertical cliff wall (already depth-sorted among items). Earth-tint.
+            const WorldMap::CliffQuad& w = *item.wall;
+            if (w.drop <= 0 || !w.tex) continue;
+            MeshVertex qv[4] = {
+                { (float)w.ax, (float)w.ay, 0.5f, 0.5f },
+                { (float)w.bx, (float)w.by, 0.5f, 0.5f },
+                { (float)w.bx, (float)w.by + (float)w.drop, 0.5f, 0.5f },
+                { (float)w.ax, (float)w.ay + (float)w.drop, 0.5f, 0.5f },
+            };
+            unsigned short qidx[6] = {0, 1, 2, 0, 2, 3};
+            Shader* cs = ShaderManager::Get("mesh_default");
+            if (cs) Renderer::DrawMesh(*cs, qv, 4, qidx, 6, w.tex, MeshDrawOptions{{115, 82, 50, 255}});
         } else if (item.entity) {
             const Entity* e = item.entity;
             if (iso) {

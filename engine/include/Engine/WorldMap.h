@@ -65,6 +65,19 @@ public:
 
     void SetElevationStep(int step) { if (step > 0) elevationStep_ = step; }
 
+    // ---- Cliff (Phase 8) ----
+    // 等距下高度差在格子边缘露出的竖直侧壁。由 DrawGroundIso 每次调用收集，
+    // SceneManager 将其作为 Item 参与统一 depth sort 后绘制（避免墙被后画实体遮挡错序）。
+    struct CliffQuad {
+        int ax = 0, ay = 0;   // 顶边点A（screen 坐标，已含相机）
+        int bx = 0, by = 0;   // 顶边点B（screen 坐标，已含相机）
+        int drop = 0;         // 墙高(px)，向下延伸
+        const Texture* tex = nullptr;
+        float sortKey = 0.0f; // 底部 y = 顶边 y + drop，用于 iso 深度排序
+    };
+    // DrawGroundIso 每帧调用后填充；本帧渲染用的竖直墙列表。
+    const std::vector<CliffQuad>& CliffQuads() const { return cliffQuads_; }
+
 
 
 bool LoadLayered(const std::vector<MapLayerSpec>& specs, const TileSet& tileSet);
@@ -157,4 +170,7 @@ private:
     int elevationH_ = 0;
     bool hasElevation_ = false;
     int elevationStep_ = 20;   // screen- px per elevation level (only used when HasElevation)
+
+    // Phase8: 每帧 iso ground pass 收集的 cliff 竖直墙（供 SceneManager 统一排序绘制）。
+    mutable std::vector<CliffQuad> cliffQuads_;
 };
