@@ -7,6 +7,7 @@
 #include "Engine/Config.h"
 #include "Engine/ResourceManager.h"
 #include "Engine/Log.h"
+#include <algorithm>
 #include <sstream>
 
 // 解析单个地图文件为宽/高 + 平铺数据（row-major）。
@@ -169,9 +170,16 @@ const TileLayer* WorldMap::LayerAt(size_t index) const {
 }
 
 std::vector<std::pair<int, int>> WorldMap::QueryCell(int col, int row) const {
+    return QueryCell(col, row, kLayerMaskAll);
+}
+
+std::vector<std::pair<int, int>> WorldMap::QueryCell(int col, int row, LayerMask mask) const {
     std::vector<std::pair<int, int>> result;
+    if (!layers_.empty()) {
+        result.reserve(std::min<size_t>(layers_.size(), 64));
+    }
     for (size_t i = 0; i < layers_.size(); ++i) {
-        if (i >= layers_.size()) break;
+        if ((mask & LayerMaskBit(i)) == 0) continue;   // 只查 mask 命中的层
         int tile = layers_[i].GetTile(col, row);
         if (tile != TileLayer::kEmpty && tile != TileLayer::kInvalid) {
             result.emplace_back(static_cast<int>(i), tile);
@@ -251,6 +259,35 @@ std::vector<SDL_Rect> WorldMap::TilesWithId(int id) const {
         }
     }
     return result;
+}
+
+void WorldMap::DumpCell(int col, int row) const {
+    LOG_INFO("Cell (" << col << "," << row << ")");
+    if (layers_.empty()) {
+        LOG_INFO("  (no layers)");
+        return;
+    }
+    for (size_t i = 0; i < layers_.size(); ++i) {
+        const TileLayer& layer = layers_[i];
+        int tile = layer.GetTile(col, row);
+        if (tile == TileLayer::kEmpty) {
+            LOG_INFO("  layer[" << i << "] tile=EMPTY");
+            continue;
+        }
+        if (tile == TileLayer::kInvalid) {
+            LOG_INFO("  layer[" << i << "] tile=INVALID(out of bounds)");
+            continue;
+        }
+        bool solid = tileSet_.IsSolid(tile);
+        bool overlay = tileSet_.IsOverlay(tile);
+        std::string trigger = tileSet_.TriggerOf(tile);
+        std::ostringstream line;
+        line << "  layer[" << i << "] tile=" << tile
+             << " solid=" << (solid ? "true" : "false")
+             << " trigger=" << (trigger.empty() ? "none" : trigger)
+             << " overlay=" << (overlay ? "true" : "false");
+        LOG_INFO(line.str());
+    }
 }
 
 void WorldMap::DrawGround(const SDL_Rect& camera) const {

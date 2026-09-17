@@ -98,6 +98,123 @@ int main() {
         CHECK(wm.GetTile(1, 1, 1) == TileLayer::kEmpty, "E6 terrain层(1,1)仍空");
     }
 
+    // --- Test F: QueryCell(x,y,mask) LayerMask 掩码查询（不写死四层）---
+    {
+        WorldMap wm;
+        wm.AddLayer(3, 3, TileLayer::kEmpty);   // 0: ground
+        wm.AddLayer(3, 3, TileLayer::kEmpty);   // 1: terrain
+        wm.AddLayer(3, 3, TileLayer::kEmpty);   // 2: water
+        wm.AddLayer(3, 3, TileLayer::kEmpty);   // 3: decoration
+        wm.SetGroundTile(1, 1, 1);              // ground         = 1
+        wm.SetTile(1, 1, 1, 2);                 // terrain        = 2
+        wm.SetTile(2, 1, 1, 3);                 // water          = 3
+        wm.SetTile(3, 1, 1, 5);                 // decoration     = 5
+
+        // Case C: mask = Ground | Water -> 只返回这两层
+        auto mask = WorldMap::LayerMaskBit(0) | WorldMap::LayerMaskBit(2);
+        auto q = wm.QueryCell(1, 1, mask);
+        CHECK(q.size() == 2, "F1 mask(Ground|Water) 只返回2层");
+        if (q.size() == 2) {
+            CHECK(q[0].first == 0 && q[0].second == 1, "F2 mask 命中的 Ground/1");
+            CHECK(q[1].first == 2 && q[1].second == 3, "F3 mask 命中的 Water/3");
+        }
+        CHECK(wm.QueryCell(1, 1).size() == 4, "F4 无 mask(全层)返回完整4层栈");
+        CHECK(wm.QueryCell(1, 1, WorldMap::LayerMaskBit(1)).size() == 1,
+              "F5 单层 mask terrain 只返回1项");
+        CHECK(wm.QueryCell(1, 1, WorldMap::LayerMaskBit(63) | WorldMap::LayerMaskBit(0))
+                    .size() == 1,
+              "F6 超层数 mask(bit63)被忽略, 仅返回 ground");
+    }
+
+    // --- Test G: 多层 solid / trigger 跨层收集（P6）---
+    {
+        // TileSet：id=1 solid, id=2 trigger("door"), id=5 overlay（无纹理，仅验证收集）
+        TileSet ts; ts.tileSize = 16;
+        ts.tiles[1] = TileDef{ "", true, false, "" };
+        ts.tiles[2] = TileDef{ "", false, false, "door" };
+        ts.tiles[5] = TileDef{ "", false, true, "" };
+
+        WorldMap wm;
+        wm.AddLayer(2, 2, TileLayer::kEmpty);   // 0: ground
+        wm.AddLayer(2, 2, TileLayer::kEmpty);   // 1: terrain
+        // ground 层 (0,0)=solid; terrain 层 (1,0)=solid; ground 层 (0,1)=trigger; terrain 层 (1,1)=overlay
+        wm.SetGroundTile(0, 0, 1);
+        wm.SetGroundTile(0, 1, 2);
+        wm.SetTile(1, 1, 0, 1);
+        wm.SetTile(1, 1, 1, 5);
+        wm.SetTileSet(ts);   // 供 RebuildMetadata 使用（无纹理时 overlay 仍收集）
+        wm.RebuildMetadata();
+
+        CHECK(wm.Colliders().size() == 2, "G1 两层 solid 都收集(共2个)");
+        CHECK(wm.TriggerRects("door").size() == 1, "G2 ground 层 trigger 收集");
+        CHECK(wm.Overlays().size() == 1, "G3 terrain 层 overlay 收集");
+
+        // 位置校验：door trigger 不在 solid 集合里（不同语义孤立收集）
+        auto dr = wm.TriggerRects("door");
+        CHECK(!dr.empty() && dr[0].x == 0 && dr[0].y == 16, "G4 trigger rect 位置正确");
+        // solid 之一在 (1,0) terrain 层
+        bool hasTerrainSolid = false;
+        for (auto& r : wm.Colliders()) {
+            if (r.x == 16 && r.y == 0) hasTerrainSolid = true;
+        }
+        CHECK(hasTerrainSolid, "G5 terrain 层 solid 可被物理消费");
+    }
+
+// --- Test H: runtime mutation 不产生 stale cache（P7）---
+    {
+        TileSet ts; ts.tileSize = 16;
+        ts.tiles[1] = TileDef{ "", true,  false, "" };   // solid
+        ts.tiles[2] = TileDef{ "", false, false, "door" }; // trigger
+        ts.tiles[5] = TileDef{ "", false, true,  "" };   // overlay
+
+        WorldMap wm;
+        wm.AddLayer(2, 2, TileLayer::kEmpty);
+        wm.SetTileSet(ts);
+
+        // Empty -> solid：写后重建，collider 出现
+        wm.SetTile(0, 1, 1, 1);
+        wm.RebuildMetadata();
+        CHECK(wm.Colliders().size() == 1, "H1 empty->solid 后 collider 出现");
+
+        // solid -> Empty：cell 置空（删掉），重建后 collider 消失（不 stale）
+        wm.SetTile(0, 1, 1, TileLayer::kEmpty);
+        wm.RebuildMetadata();
+        CHECK(wm.Colliders().empty(), "H2 solid->empty 后 collider 清除(不 stale)");
+
+        // Empty -> trigger：重建后 trigger 出现
+        wm.SetTile(0, 0, 0, 2);
+        wm.RebuildMetadata();
+        CHECK(wm.TriggerRects("door").size() == 1, "H3 empty->trigger 后 trigger 出现");
+        CHECK(wm.Colliders().empty(), "H4 trigger tile 非 solid, collider 仍空");
+
+        // overlay 变更：写 overlay tile 后 overlay 出现；置空后清除
+        wm.SetTile(0, 1, 0, 5);
+        wm.RebuildMetadata();
+        CHECK(wm.Overlays().size() == 1, "H5 empty->overlay 后 overlay 出现");
+        wm.SetTile(0, 1, 0, TileLayer::kEmpty);
+        wm.RebuildMetadata();
+        CHECK(wm.Overlays().empty(), "H6 overlay->empty 后 overlay 清除(不 stale)");
+    }
+
+    // --- Test I: DumpCell 诊断输出（#20, 仅验证能编译+不改变状态）---
+    {
+        TileSet ts; ts.tileSize = 16;
+        ts.tiles[1] = TileDef{ "", true,  false, "" };     // solid
+        ts.tiles[2] = TileDef{ "", false, false, "door" }; // trigger
+        ts.tiles[5] = TileDef{ "", false, true,  "" };     // overlay
+        WorldMap wm;
+        wm.AddLayer(2, 2, TileLayer::kEmpty);
+        wm.AddLayer(2, 2, TileLayer::kEmpty);
+        wm.SetTileSet(ts);
+        wm.SetGroundTile(1, 1, 1);
+        wm.SetTile(1, 1, 1, 5);   // (1,1) 两语义层都可 dump
+        wm.RebuildMetadata();
+        wm.DumpCell(1, 1);        // 打印 ground solid + terrain overlay
+        wm.DumpCell(0, 0);        // 打印各层 EMPTY
+        CHECK(wm.GetGroundTile(1, 1) == 1 && wm.GetTile(1, 1, 1) == 5,
+              "I1 DumpCell 不改变数据状态");
+    }
+
     std::printf("=== 完成：%d 项 / 失败 %d 项 ===\n", g_checks, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

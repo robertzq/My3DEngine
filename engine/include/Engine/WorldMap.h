@@ -57,6 +57,20 @@ public:
     // 返回 vector<pair<layerIndex, tileId>>；空 cell 返回空 vector。
     std::vector<std::pair<int, int>> QueryCell(int col, int row) const;
 
+    // LayerMask —— 按位选择关心的空间语义层，不写死“只有四层”。
+    // bit i 对应第 i 层；最多支持 64 层（uint64_t）。
+    using LayerMask = uint64_t;
+    static constexpr LayerMask kLayerMaskAll = ~LayerMask(0);
+    // 第 index 层的掩码位（index >= 64 返回 0，即无法被 mask 选中）。
+    static constexpr LayerMask LayerMaskBit(size_t layerIndex) {
+        return layerIndex < 64 ? (LayerMask(1) << layerIndex) : LayerMask(0);
+    }
+
+    // QueryCell(带掩码)：只返回 mask 指定层中非空的数据，层序稳定。
+    // 用于 Behavior（Movement/Fishing/Footstep/Trigger/Collision 等）按自己
+    // 关心的空间语义做查询，而不是把整个 cell 展开给调用方。
+    std::vector<std::pair<int, int>> QueryCell(int col, int row, LayerMask mask) const;
+
     // —— 逐层 Tile 读写（越界安全）——
     int  GetTile(int layerIndex, int col, int row) const;
     bool SetTile(int layerIndex, int col, int row, int id);
@@ -88,6 +102,14 @@ public:
     int WidthPx() const { return Width() * tileSize_; }
     int HeightPx() const { return Height() * tileSize_; }
     const TileSet& TileSetRef() const { return tileSet_; }
+    // 显式设置 tileSet（在直接 AddLayer 手搓多层、尚未走 Load* 时使用；
+    // 设置后需自行调用 RebuildMetadata 以按新 tileSet 重建元数据）。
+    void SetTileSet(const TileSet& ts) { tileSet_ = ts; tileSize_ = ts.tileSize > 0 ? ts.tileSize : 32; }
+
+    // —— Debug ——
+    // 打印某 cell 每层的数据与语义（tile/solid/trigger/overlay），用于排查地图数据与
+    // 未来 Agent 生成多层地图时的可视化校验。纯诊断，仅输出日志，不改变任何状态。
+    void DumpCell(int col, int row) const;
 
 private:
     // 把 tileId -> Texture* 纹理表重建自 tileSet（仅一次，供 overlay 填充）。
