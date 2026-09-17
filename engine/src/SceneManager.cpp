@@ -597,10 +597,17 @@ void SceneManager::DrawWorld() {
                 float footY = e->transform.y + static_cast<float>(e->transform.h);
                 SDL_Point foot = projection.WorldToScreen(footX, footY);
                 int sx = foot.x - drawCam.x;
-                int sy = foot.y - drawCam.y - e->transform.h;  // 贴图顶在脚尖上方
+                int entityElev = 0;
+                if (map && map->HasElevation()) {
+                    const int t = map->TileSize();
+                    entityElev = static_cast<int>(map->GetElevation(
+                        static_cast<int>(static_cast<int>(footX) / t),
+                        static_cast<int>(static_cast<int>(footY) / t))) * map->ElevationStep();
+                }
+                int sy = foot.y - drawCam.y - entityElev - e->transform.h;  // lifted for elevation  // 贴图顶在脚尖上方
 
                 // 脚下阴影：在地面上画一个半透明深色椭圆，让实体“落地”。
-                DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y,
+                DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y - entityElev,
                                e->transform.w, projection.view.scale);
 
                 // 裁剪（用围盒）
