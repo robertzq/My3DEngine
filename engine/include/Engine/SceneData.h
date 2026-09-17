@@ -94,6 +94,8 @@ struct SceneData {
     std::string controller;
     std::string map;
     std::vector<MapLayerSpec> mapLayers;   // 多层地图（新增，可选）
+    std::string elevationFile;            // 可选：高度矩阵文件（非必须）
+    int elevationStepPx = 0;              // 可选：一级高度屏幕像素步长；0=不使用（无 elevation 场景忽略）
     std::string tileset;
     std::string projectionMode;
     float projectionScale = 1.0f;
@@ -112,6 +114,10 @@ struct SceneData {
         data.tileset = j.value("tileset", "");
         data.projectionMode = j.value("projection", "");
         data.projectionScale = j.value("projection_scale", 1.0f);
+    // Elevation: 可选高度矩阵文件 + 步长。仅当 scene 示例配置了 elevation 才起作用，
+    // 无 elevation 的旧场景（island/sample_demo 等）保持不受影响。
+    data.elevationFile = j.value("elevation", "");
+    data.elevationStepPx = j.value("elevation_step", 0);
         data.params = j.value("params", json::object());
 
         // map 字段：兼容旧 string，也支持新 object { "layers": [...] }。

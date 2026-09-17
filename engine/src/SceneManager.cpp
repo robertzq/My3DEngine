@@ -325,6 +325,28 @@ void SceneManager::LoadScene(const std::string& sceneId, const std::string& spaw
     else { projection.mode = ProjectionMode::Ortho; }
     projection.view.scale = data.projectionScale;
     context.projection = projection;
+
+    // Elevation: 如场景配置了可选高度矩阵，在地图加载成功后加载。
+    // 默认步长根据等距几何推导：一级高度 = 菱形半高 * scale；
+    // 这保证抬一级正好让菱形叠上下一层菱形（像堆叠），视觉自然无悬空。
+    // 失败时仅记录错误，不影响场景进入（高度是可选增强）。
+    if (map && !data.elevationFile.empty()) {
+        float derivedStep = 0.0f;
+        if (projection.mode == ProjectionMode::Iso) {
+            derivedStep = static_cast<float>(projection.grid.halfH()) * projection.view.scale;
+        } else {
+            derivedStep = static_cast<float>(map->TileSize());
+        }
+        int step = data.elevationStepPx > 0
+                   ? data.elevationStepPx
+                   : static_cast<int>(derivedStep > 0.0f ? derivedStep + 0.5f : 20.0f);
+        map->SetElevationStep(step);
+        if (!map->LoadElevation(data.elevationFile)) {
+            LOG_WARN("SceneManager: 高度加载失败，场景 " << sceneId
+                     << " 将以 0 高度（平地）运行 -> " << data.elevationFile);
+        }
+    }
+
     context.map = map.get();
     context.controller = nullptr;
     context.params = data.params.is_object() ? data.params : json::object();

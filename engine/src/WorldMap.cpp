@@ -155,6 +155,84 @@ bool WorldMap::LoadLayered(const std::vector<MapLayerSpec>& specs, const TileSet
     return true;
 }
 
+bool WorldMap::LoadElevation(const std::string& elevationFile) {
+    if (layers_.empty()) {
+        LOG_ERROR("WorldMap::LoadElevation 失败：尚未加载任何地图层，无法匹配尺寸");
+        return false;
+    }
+    const int expectW = Width();
+    const int expectH = Height();
+
+    std::string content = ResourceManager::GetText(elevationFile);
+    if (content.empty()) {
+        LOG_ERROR("WorldMap::LoadElevation 失败：高度文件缺失或为空 -> " << elevationFile);
+        return false;
+    }
+
+    std::stringstream stream(content);
+    std::string line;
+    std::vector<uint8_t> values;
+    int rows = 0;
+    int width = -1;
+    int lineNo = 0;
+    while (std::getline(stream, line)) {
+        ++lineNo;
+        while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
+        if (line.empty()) continue;
+        std::stringstream ls(line);
+        int v;
+        bool bad = false;
+        std::vector<int> row;
+        while (ls >> v) {
+            if (v < 0 || v > 3) {
+                LOG_ERROR("WorldMap::LoadElevation 失败：值越界 " << v
+                          << " (合法范围 0..3) @line " << lineNo);
+                return false;
+            }
+            row.push_back(v);
+        }
+        if (!(ls.eof() && ls.fail())) {
+            // 含非整数 token
+            LOG_ERROR("WorldMap::LoadElevation 失败：含有非整数令牌 @line " << lineNo);
+            return false;
+        }
+        if (row.empty()) continue;
+        if (width < 0) width = static_cast<int>(row.size());
+        if (static_cast<int>(row.size()) != width) {
+            LOG_ERROR("WorldMap::LoadElevation 失败：行宽不一致 @line " << lineNo
+                      << " (本行 " << row.size() << "，首行 " << width << ")");
+            return false;
+        }
+        for (int val : row) values.push_back(static_cast<uint8_t>(val));
+        ++rows;
+    }
+
+    if (width <= 0 || rows <= 0) {
+        LOG_ERROR("WorldMap::LoadElevation 失败：无法解析出有效矩阵 -> " << elevationFile);
+        return false;
+    }
+    if (width != expectW || rows != expectH) {
+        LOG_ERROR("WorldMap::LoadElevation 失败：尺寸不匹配 高度文件 " << width << "x" << rows
+                  << "，地图 " << expectW << "x" << expectH
+                  << "（不允许静默 resize，请修正高度文件或地图）");
+        return false;
+    }
+
+    elevation_.swap(values);
+    elevationW_ = width;
+    elevationH_ = rows;
+    hasElevation_ = true;
+    LOG_INFO("WorldMap::LoadElevation 成功: " << width << "x" << rows
+             << "，8位有符号仅用 0..3，已启用 HasElevation");
+    return true;
+}
+
+uint8_t WorldMap::GetElevation(int col, int row) const {
+    if (!hasElevation_) return 0;   // 无 elevation => 恒 baseline（向后兼容）
+    if (col < 0 || row < 0 || col >= elevationW_ || row >= elevationH_) return 0;
+    return elevation_[static_cast<size_t>(row) * elevationW_ + col];
+}
+
 int WorldMap::AddLayer(int width, int height, int fill) {
     layers_.emplace_back(width, height, fill);
     RebuildMetadata();

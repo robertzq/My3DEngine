@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -42,7 +43,31 @@ public:
     //   4) 第一层决定 map 尺寸；后续层尺寸必须与其一致（mismatch 报错）
     //   5) 不允许静默 resize
     // 加载成功返回 true；失败时本对象状态不确定（调用方应视为加载失败处理）。
-    bool LoadLayered(const std::vector<MapLayerSpec>& specs, const TileSet& tileSet);
+        // ---- Elevation (discrete terrain height) ----
+
+    // Elevation 是空间属性不是 TileLayer：回答「这个 cell 有多高」，而非「这里有什么」。
+
+    // 由 WorldMap 单独持有，与 layers 完全分离。
+
+    // V1：值域 0..3（0=baseline, 1..3=高度级）；只读，不提供 runtime mutation
+
+    //（mutation 会连带 cliff/render/movement 缓存，本阶段无真实需求）。
+
+    // 任何失败返回 false 且 HasElevation()==false（不允许静默 clamp/resize）。
+
+    bool LoadElevation(const std::string& elevationFile);
+
+    uint8_t GetElevation(int col, int row) const;   // 未加载时恒 0
+
+    bool HasElevation() const { return hasElevation_; }
+
+    int ElevationStep() const { return elevationStep_; }
+
+    void SetElevationStep(int step) { if (step > 0) elevationStep_ = step; }
+
+
+
+bool LoadLayered(const std::vector<MapLayerSpec>& specs, const TileSet& tileSet);
 
     // —— 多层 API（Phase3 起走这里；Phase2 提供基础能力）——
     // 追加一个空层。返回 layerId（从 0 递增）。
@@ -125,4 +150,11 @@ private:
     std::vector<TileSprite> overlays_;
     std::vector<std::string> triggerNames_;
     std::vector<std::vector<SDL_Rect>> triggerRects_;
+
+    // ---- Elevation data (separate from layers) ----
+    std::vector<uint8_t> elevation_;   // col*height+row, value 0..3
+    int elevationW_ = 0;
+    int elevationH_ = 0;
+    bool hasElevation_ = false;
+    int elevationStep_ = 20;   // screen- px per elevation level (only used when HasElevation)
 };
