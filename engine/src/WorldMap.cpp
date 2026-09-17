@@ -9,6 +9,7 @@
 #include "Engine/Log.h"
 #include <algorithm>
 #include <sstream>
+#include <cmath>
 
 // 解析单个地图文件为宽/高 + 平铺数据（row-major）。
 // 兼容空格/制表分隔 与 紧凑数字串 两种矩阵写法（对齐旧 TileMap::Load）。
@@ -231,6 +232,44 @@ uint8_t WorldMap::GetElevation(int col, int row) const {
     if (!hasElevation_) return 0;   // 无 elevation => 恒 baseline（向后兼容）
     if (col < 0 || row < 0 || col >= elevationW_ || row >= elevationH_) return 0;
     return elevation_[static_cast<size_t>(row) * elevationW_ + col];
+}
+
+// Phase9: elevation movement gate (keep Physics fully 2D).
+bool WorldMap::IsElevationMoveAllowed(float fromX, float fromY, float toX, float toY) const {
+    // V1: no elevation => always allowed (backward compat for legacy ortho/iso scenes).
+    if (!hasElevation_) return true;
+    int c0 = CellCol(fromX), r0 = CellRow(fromY);
+    int base = GetElevation(c0, r0);
+    int tc = CellCol(toX), tr = CellRow(toY);
+    if (tc == c0 && tr == r0) return true;
+
+    // Continuous-pixel sweep: sample along the segment at sub-cell steps so a fast
+    // single frame can not tunnel across a cliff boundary. Displacement is usually <1 cell.
+    float dx = toX - fromX, dy = toY - fromY;
+    float reach = std::max(std::fabs(dx), std::fabs(dy));
+    int n = static_cast<int>(std::ceil(reach / (tileSize_ * 0.5f))) + 1;
+    if (n < 1) n = 1;
+    for (int i = 1; i <= n; ++i) {
+        float t = static_cast<float>(i) / static_cast<float>(n);
+        int cc = CellCol(fromX + dx * t), rr = CellRow(fromY + dy * t);
+        if (GetElevation(cc, rr) != base) return false;
+    }
+    return true;
+}
+
+bool WorldMap::SetElevationCell(int col, int row, uint8_t lvl) {
+    if (lvl > 3) return false;
+    if (!hasElevation_) {
+        // Auto-enable from current map size (Scene Generator / demo / tests).
+        if (layers_.empty()) return false;
+        elevationW_ = Width();
+        elevationH_ = Height();
+        elevation_.assign(static_cast<size_t>(elevationW_) * elevationH_, 0);
+        hasElevation_ = true;
+    }
+    if (col < 0 || row < 0 || col >= elevationW_ || row >= elevationH_) return false;
+    elevation_[static_cast<size_t>(row) * elevationW_ + col] = lvl;
+    return true;
 }
 
 int WorldMap::AddLayer(int width, int height, int fill) {

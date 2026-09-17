@@ -61,6 +61,22 @@ public:
 
     bool HasElevation() const { return hasElevation_; }
 
+    // Phase9 Movement topology（保持 Physics 完全 2D，不改 MoveTopDown/AABB）。
+    // 世界像素坐标 -> 所在 cell。
+    int CellCol(float worldX) const { return static_cast<int>(worldX) / tileSize_; }
+    int CellRow(float worldY) const { return static_cast<int>(worldY) / tileSize_; }
+
+    // V1 elevation 阻挡：从当前脚底(world 像素)到目标脚底是否允许移动。
+    //   同 elevation -> allowed；不同 -> blocked；无 elevation -> 恒 allowed（兼容旧场景）。
+    //   内置 sweep：单帧跨多 cell 也逐 cell 检查，防止高速 tunneling 穿过 cliff 边界。
+    //   （future stairs/ramps 在此预留为 extension point；V1 全档阻挡。）
+    bool IsElevationMoveAllowed(float fromX, float fromY, float toX, float toY) const;
+
+    // 加载期程序化填 elevation（Scene Generator / elevation_demo / 单测）。
+    // value 0..3；col,row 越界或值越界返回 false；首次调用自动按当前 map 尺寸启用。
+    // play 期保持 immutable（不提供其他 mutation）。
+    bool SetElevationCell(int col, int row, uint8_t lvl);
+
     int ElevationStep() const { return elevationStep_; }
 
     void SetElevationStep(int step) { if (step > 0) elevationStep_ = step; }

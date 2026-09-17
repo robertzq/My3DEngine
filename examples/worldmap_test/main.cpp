@@ -242,6 +242,25 @@ int main() {
         CHECK(o1.x == 100 && o1.y == 80 - 3 * step, "J4 ortho 模式统一投影同样生效");
     }
 
+    // --- Test K: Phase9 elevation movement gate ---
+    {
+        WorldMap wm;
+        wm.AddLayer(3, 3, TileLayer::kEmpty);   // default tileSize=32
+        CHECK(!wm.HasElevation(), "K1 初始无 elevation");
+        CHECK(wm.SetElevationCell(0, 0, 1), "K2 注入 elev(0,0)=1");
+        CHECK(wm.SetElevationCell(1, 0, 1), "K3 注入 elev(1,0)=1");
+        CHECK(wm.SetElevationCell(1, 1, 0), "K4 注入 elev(1,1)=0");
+        CHECK(wm.HasElevation(), "K5 已启用 elevation");
+        CHECK(wm.CellCol(40.0f) == 1 && wm.CellRow(20.0f) == 0, "K6 CellCol/Row");
+        CHECK(wm.IsElevationMoveAllowed(10, 10, 40, 10), "K7 同高度 (0,0)->(1,0) allowed");
+        CHECK(!wm.IsElevationMoveAllowed(10, 10, 40, 42), "K8 elev1 -> elev0 blocked");
+        CHECK(wm.IsElevationMoveAllowed(10, 10, 15, 12), "K9 同单元 allowed");
+        CHECK(!wm.SetElevationCell(3, 0, 2), "K10 越界拒绝");
+        WorldMap plain;
+        plain.AddLayer(3, 3, TileLayer::kEmpty);
+        CHECK(plain.IsElevationMoveAllowed(0, 0, 200, 200), "K11 无 elevation 恒 allowed");
+    }
+
     std::printf("=== 完成：%d 项 / 失败 %d 项 ===\n", g_checks, g_fail);
     return g_fail == 0 ? 0 : 1;
 }
