@@ -420,8 +420,17 @@ void SceneManager::FollowPlayer() {
         float px = player->transform.x + static_cast<float>(player->transform.w) / 2.0f;
         float py = player->transform.y + static_cast<float>(player->transform.h);
         SDL_Point iso = projection.IsoPoint(px, py);
+        // Elevation 相机补偿：玩家站在高地时，脚底已被抬高 elev*step，
+        // 相机 offset 必须同步上移，否则人物推而跑出屏幕中心。
+        float cameraElev = 0.0f;
+        if (map && map->HasElevation()) {
+            const int tile = map->TileSize();
+            const int prow = static_cast<int>(py / tile);
+            const int pcol = static_cast<int>(px / tile);
+            cameraElev = static_cast<float>(map->GetElevation(pcol, prow)) * map->ElevationStep();
+        }
         projection.view.offsetX = EngineConfig::SCREEN_WIDTH / 2.0f - iso.x * projection.view.scale;
-        projection.view.offsetY = EngineConfig::SCREEN_HEIGHT / 2.0f - iso.y * projection.view.scale;
+        projection.view.offsetY = EngineConfig::SCREEN_HEIGHT / 2.0f - (iso.y * projection.view.scale - cameraElev);
         return;
     }
 
