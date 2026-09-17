@@ -10,9 +10,11 @@
 class Texture;
 
 struct TileSprite {
-    SDL_Rect rect;
-    Texture* texture = nullptr;   // non-owning
-    int sortY = 0;
+    SDL_Rect rect;              // 世界像素矩形（单元格顶左角）
+    Texture* texture = nullptr; // non-owning
+    int sortY = 0;              // 世界米底 y = rect.y + rect.h
+    int col = -1;               // 源细胞列（投影/高度查询用）
+    int row = -1;               // 源细胞行
 };
 
 class TileMap {

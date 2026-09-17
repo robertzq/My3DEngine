@@ -582,12 +582,29 @@ void SceneManager::DrawWorld() {
 
     for (const auto& item : items) {
         if (item.tile) {
-            SDL_Rect dest = item.tile->rect;
-            dest.x -= drawCam.x;
-            dest.y -= drawCam.y;
-            if (dest.x < -dest.w || dest.x > drawCam.w ||
-                dest.y < -dest.h || dest.y > drawCam.h) continue;
-            Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
+            if (iso) {
+                // 统一投影：overlay 以所在格脚底中点为锚投影，贴图向上延伸，并叠加该 cell 的高度。
+                const SDL_Rect& tr = item.tile->rect;
+                float fwx = static_cast<float>(tr.x) + static_cast<float>(tr.w) * 0.5f;  // 脚底水平中点
+                float fwy = static_cast<float>(tr.y) + static_cast<float>(tr.h);         // 脚底底边
+                int eLevel = 0;
+                if (map && map->HasElevation() && item.tile->col >= 0 && item.tile->row >= 0) {
+                    eLevel = map->GetElevation(item.tile->col, item.tile->row);
+                }
+                SDL_Point op = projection.ProjectedFoot(fwx, fwy, eLevel, map ? map->ElevationStep() : 0);
+                int dx = op.x - tr.w / 2 - drawCam.x;   // 以脚底中点为底，水平居中
+                int dy = op.y - tr.h - drawCam.y;        // 贴图向上延伸脚底落地
+                if (dx < -tr.w || dx > drawCam.w || dy < -tr.h || dy > drawCam.h) continue;
+                SDL_Rect dest{dx, dy, tr.w, tr.h};
+                Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
+            } else {
+                SDL_Rect dest = item.tile->rect;
+                dest.x -= drawCam.x;
+                dest.y -= drawCam.y;
+                if (dest.x < -dest.w || dest.x > drawCam.w ||
+                    dest.y < -dest.h || dest.y > drawCam.h) continue;
+                Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
+            }
         } else if (item.entity) {
             const Entity* e = item.entity;
             if (iso) {

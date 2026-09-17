@@ -70,6 +70,8 @@ void TileLayer::RebuildMetadata(const TileSet& tileSet, int tileSize,
                 TileSprite sp;
                 sp.rect = rect;
                 sp.sortY = rect.y + rect.h;
+                sp.col = col;
+                sp.row = row;
                 sp.texture = nullptr;
                 if (textures) {
                     auto tIt = textures->find(id);
