@@ -611,6 +611,27 @@ void SceneManager::DrawWorld() {
     std::stable_sort(items.begin(), items.end(),
                      [](const Item& a, const Item& b) { return a.key < b.key; });
 
+    // unified ground-level shadows: draw ALL entity shadows on the ground
+    // layer before any sprites, so tall entities' shadows never float onto
+    // other entities' bodies (iso depth order stays intact for sprites).
+    if (iso) {
+        for (const auto& item : items) {
+            if (!item.entity) continue;
+            Entity* e = item.entity;
+            float shFootX = e->transform.x + static_cast<float>(e->transform.w) * 0.5f;
+            float shFootY = e->transform.y + static_cast<float>(e->transform.h);
+            int shElev = 0;
+            if (map && map->HasElevation()) {
+                const int t = map->TileSize();
+                shElev = map->GetElevation(static_cast<int>(static_cast<int>(shFootX) / t),
+                                           static_cast<int>(static_cast<int>(shFootY) / t));
+            }
+            SDL_Point shFoot = projection.ProjectedFoot(shFootX, shFootY, shElev, map ? map->ElevationStep() : 0);
+            DrawFootShadow(shFoot.x - drawCam.x, shFoot.y - drawCam.y,
+                           e->transform.w, projection.view.scale);
+        }
+    }
+
     for (const auto& item : items) {
         if (item.tile) {
             if (iso) {
@@ -682,10 +703,6 @@ void SceneManager::DrawWorld() {
                 int sx = foot.x - drawCam.x;
                 int sy = foot.y - drawCam.y - dh;  // 贴图顶在脚尖上方（按缩放后高；地形高度已由统一投影计入）
 
-                // 脚下阴影：在地面上画一个半透明深色椭圆，让实体“落地”。
-                DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y,
-                               e->transform.w, projection.view.scale);
-
                 // 裁剪（用围盒）
                 if (sx < -dw || sx > drawCam.w || sy < -dh || sy > drawCam.h) continue;
 
@@ -721,7 +738,7 @@ static Texture* EnsureShadowTexture() {
             float d = nx * nx + ny * ny;          // 归一椭圆距离^2
             float a = (d < 1.0f) ? (1.0f - d) : 0.0f;  // 边缘渐隐
             a = a * a;                             // 更集中到中心
-            Uint8 alpha = (Uint8)(a * 140.0f);     // 中心 ~140，边缘 ~0
+            Uint8 alpha = (Uint8)(a * 85.0f);     // 中心 ~140，边缘 ~0
             Uint32 c = (alpha << 24) | (20 << 16) | (16 << 8) | 12;  // 深蓝黑
             px[y * W + x] = c;
         }
@@ -735,8 +752,8 @@ static Texture* EnsureShadowTexture() {
 void SceneManager::DrawFootShadow(int cx, int cy, int entW, float scale) {
     Texture* tex = EnsureShadowTexture();
     if (!tex) return;
-    int w = std::max(8, (int)(entW * 0.9f * scale));  // 阴影宽 ≈ 实体视觉宽（camera-zoom：跟随 view.scale）
-    int h = std::max(4, w / 3);                   // 扁平
+    int w = std::max(8, (int)(entW * 0.45f * scale)); // narrower: matches canopy footprint// 阴影宽 ≈ 实体视觉宽（camera-zoom：跟随 view.scale）
+    int h = std::max(4, w / 4);                   // 扁平
     Shader* sh = ShaderManager::Get("mesh_default");
     if (!sh) return;
     MeshVertex v[4];
