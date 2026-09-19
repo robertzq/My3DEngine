@@ -475,13 +475,13 @@ void WorldMap::DrawGroundIso(const Projection& proj, const SDL_Rect& camera) con
                 // Phase8: collect exposed vertical cliff walls (neighbor lower than this cell)
                 if (elev > 0) {
                     // dir -> (dc,dr) -> diamond edge (a,b)
-                    struct Wall { int dc, dr, a, b; } walls[4] = {
-                        { 0,-1, 1, 2 }, // N  (row-1) edge[1]-[2] screen-upper-right
-                        { 1, 0, 2, 3 }, // E  (col+1) edge[2]-[3] screen-right
-                        { 0, 1, 3, 0 }, // S  (row+1) edge[3]-[0] screen-lower-left
-                        {-1, 0, 0, 1 }, // W  (col-1) edge[0]-[1] screen-upper-left
+                    // 树底座原则：等距固定视角下，块体只有屏幕右下(E)与左下(S)两个侧面可见，
+                    // 背面 N/W 两侧被顶面自身遮挡，绝不生成，否则会露出违反直觉的背面泥土条带。
+                    struct Wall { int dc, dr, a, b; } walls[2] = {
+                        { 1, 0, 2, 3 }, // E  (col+1) edge[2]-[3] screen-right (visible)
+                        { 0, 1, 3, 0 }, // S  (row+1) edge[3]-[0] screen-lower-left (visible)
                     };
-                    for (int wi = 0; wi < 4; ++wi) {
+                    for (int wi = 0; wi < 2; ++wi) {
                         const Wall& w = walls[wi];
                         int ne = static_cast<int>(GetElevation(col + w.dc, row + w.dr));
                         if (ne >= elev) continue;            // not exposed (covered by equal/higher)
