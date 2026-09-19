@@ -615,7 +615,11 @@ void SceneManager::DrawWorld() {
         if (item.tile) {
             if (iso) {
                 // 统一投影：overlay 以所在格脚底中点为锚投影，贴图向上延伸，并叠加该 cell 的高度。
+                // camera-zoom：贴图宽高跟随 view.scale 等比缩放（脚底锚点不变），实现整体拉近/拉远。
                 const SDL_Rect& tr = item.tile->rect;
+                const float s = projection.view.scale;
+                const int dw = static_cast<int>(tr.w * s);
+                const int dh = static_cast<int>(tr.h * s);
                 float fwx = static_cast<float>(tr.x) + static_cast<float>(tr.w) * 0.5f;  // 脚底水平中点
                 float fwy = static_cast<float>(tr.y) + static_cast<float>(tr.h);         // 脚底底边
                 int eLevel = 0;
@@ -623,10 +627,10 @@ void SceneManager::DrawWorld() {
                     eLevel = map->GetElevation(item.tile->col, item.tile->row);
                 }
                 SDL_Point op = projection.ProjectedFoot(fwx, fwy, eLevel, map ? map->ElevationStep() : 0);
-                int dx = op.x - tr.w / 2 - drawCam.x;   // 以脚底中点为底，水平居中
-                int dy = op.y - tr.h - drawCam.y;        // 贴图向上延伸脚底落地
-                if (dx < -tr.w || dx > drawCam.w || dy < -tr.h || dy > drawCam.h) continue;
-                SDL_Rect dest{dx, dy, tr.w, tr.h};
+                int dx = op.x - dw / 2 - drawCam.x;      // 以脚底中点为底，水平居中（按缩放后宽）
+                int dy = op.y - dh - drawCam.y;          // 贴图向上延伸脚底落地（按缩放后高）
+                if (dx < -dw || dx > drawCam.w || dy < -dh || dy > drawCam.h) continue;
+                SDL_Rect dest{dx, dy, dw, dh};
                 Renderer::DrawSprite(item.tile->texture, SDL_Rect{0, 0, 0, 0}, dest, SDL_FLIP_NONE);
             } else {
                 SDL_Rect dest = item.tile->rect;
@@ -654,6 +658,10 @@ void SceneManager::DrawWorld() {
             if (iso) {
                 // 等距：以脚底中心为锚，按投影定位。
                 // 取实体逻辑坐标（像素）为脚底；贴图向上延伸整个高度。
+                // camera-zoom：贴图宽高跟随 view.scale 等比缩放（脚底锚点不变）。
+                const float s = projection.view.scale;
+                const int dw = static_cast<int>(e->transform.w * s);
+                const int dh = static_cast<int>(e->transform.h * s);
                 float footX = e->transform.x + static_cast<float>(e->transform.w) / 2.0f;
                 float footY = e->transform.y + static_cast<float>(e->transform.h);
                 int entityElevLevel = 0;
@@ -665,19 +673,18 @@ void SceneManager::DrawWorld() {
                 }
                 SDL_Point foot = projection.ProjectedFoot(footX, footY, entityElevLevel, map ? map->ElevationStep() : 0);
                 int sx = foot.x - drawCam.x;
-                int sy = foot.y - drawCam.y - e->transform.h;  // 贴图顶在脚尖上方（地形高度已由统一投影计入）
+                int sy = foot.y - drawCam.y - dh;  // 贴图顶在脚尖上方（按缩放后高；地形高度已由统一投影计入）
 
                 // 脚下阴影：在地面上画一个半透明深色椭圆，让实体“落地”。
                 DrawFootShadow(foot.x - drawCam.x, foot.y - drawCam.y,
                                e->transform.w, projection.view.scale);
 
                 // 裁剪（用围盒）
-                if (sx < -e->transform.w || sx > Game::camera.w ||
-                    sy < -e->transform.h || sy > Game::camera.h) continue;
+                if (sx < -dw || sx > drawCam.w || sy < -dh || sy > drawCam.h) continue;
 
                 SDL_Rect src = (e->sprite.src.w > 0 && e->sprite.src.h > 0)
                                    ? e->sprite.src : SDL_Rect{0, 0, 0, 0};
-                SDL_Rect dest{sx, sy, e->transform.w, e->transform.h};
+                SDL_Rect dest{sx, sy, dw, dh};
                 Renderer::DrawSprite(e->sprite.texture, src, dest,
                                      (e->sprite.flip & SDL_FLIP_VERTICAL) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
             } else {
@@ -721,7 +728,7 @@ static Texture* EnsureShadowTexture() {
 void SceneManager::DrawFootShadow(int cx, int cy, int entW, float scale) {
     Texture* tex = EnsureShadowTexture();
     if (!tex) return;
-    int w = std::max(8, (int)(entW * 0.9f));      // 阴影宽 ≈ 实体宽
+    int w = std::max(8, (int)(entW * 0.9f * scale));  // 阴影宽 ≈ 实体视觉宽（camera-zoom：跟随 view.scale）
     int h = std::max(4, w / 3);                   // 扁平
     Shader* sh = ShaderManager::Get("mesh_default");
     if (!sh) return;
